@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+{{- /*gotype: hello-run.TopStats*/ -}}
+<head>
+  <meta charset="UTF-8">
+  <title>Energy Dashboard</title>
+</head>
+<body>
+<table border="1">
+  <tr>
+    <td>Site</td>
+    <td>As Of</td>
+    <td>Site</td>
+    <td>Load</td>
+    <td>Solar</td>
+    <td>Battery</td>
+    <td>Battery Charge</td>
+    <td>Response Time</td>
+  </tr>
+  <tr>
+    <td>VT</td>
+    <td>{{.AsOf}}</td>
+    <td>{{.SiteInstantPower}}</td>
+    <td>{{.LoadInstantPower}}</td>
+    <td>{{.SolarInstantPower}}</td>
+    <td>{{.BatteryInstantPower}}</td>
+    <td>{{.BatteryCharge}}</td>
+    <td>{{.QueryTime}}</td>
+  </tr>
+</table>
+</body>
+</html>

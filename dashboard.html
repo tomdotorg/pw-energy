@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-{{- /*gotype: hello-run.TopStats*/ -}}
+{{- /*gotype: []hello-run.TopStats*/ -}}
 <head>
   <meta charset="UTF-8">
   <title>Energy Dashboard</title>
@@ -18,14 +18,24 @@
     <td>Response Time</td>
   </tr>
   <tr>
+    <td>MA</td>
+    <td>{{ (index . 0).AsOf }}</td>
+    <td>{{ (index . 0).SiteInstantPower}}</td>
+    <td>{{ (index . 0).LoadInstantPower}}</td>
+    <td>{{ (index . 0).SolarInstantPower}}</td>
+    <td>{{ (index . 0).BatteryInstantPower}}</td>
+    <td>{{ (index . 0).BatteryCharge}}</td>
+    <td>{{ (index . 0).QueryTime}}</td>
+  </tr>
+  <tr>
     <td>VT</td>
-    <td>{{.AsOf}}</td>
-    <td>{{.SiteInstantPower}}</td>
-    <td>{{.LoadInstantPower}}</td>
-    <td>{{.SolarInstantPower}}</td>
-    <td>{{.BatteryInstantPower}}</td>
-    <td>{{.BatteryCharge}}</td>
-    <td>{{.QueryTime}}</td>
+    <td>{{ (index . 1).AsOf }}</td>
+    <td>{{ (index . 1).SiteInstantPower}}</td>
+    <td>{{ (index . 1).LoadInstantPower}}</td>
+    <td>{{ (index . 1).SolarInstantPower}}</td>
+    <td>{{ (index . 1).BatteryInstantPower}}</td>
+    <td>{{ (index . 1).BatteryCharge}}</td>
+    <td>{{ (index . 1).QueryTime}}</td>
   </tr>
 </table>
 </body>

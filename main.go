@@ -70,32 +70,36 @@ type TopStats struct {
 }
 
 // energyByLocation queries for the current information for a site.
-func energyByLocation(location string) (TopStats, error) {
+func energyByLocation(locations ...string) ([]TopStats, error) {
 	start := time.Now()
-	var stats TopStats
+	var allStats []TopStats = make([]TopStats, 0)
 
-	topic := "energy/" + location + "/energy"
-	row := db.QueryRow("SELECT dt asof, payload->>'$.load.instant_power' ld, payload->>'$.battery.instant_power' battery, payload->>'$.site.instant_power' site, payload->>'$.solar.instant_power' solar FROM energy where topic = ? order by asOf desc limit 1;", topic)
-	stats.QueryTime = time.Since(start)
+	for _, location := range locations {
+		var stats TopStats
+		topic := "energy/" + location + "/energy"
+		row := db.QueryRow("SELECT dt asof, payload->>'$.load.instant_power' ld, payload->>'$.battery.instant_power' battery, payload->>'$.site.instant_power' site, payload->>'$.solar.instant_power' solar FROM energy where topic = ? order by asOf desc limit 1;", topic)
+		stats.QueryTime = time.Since(start)
 
-	var (
-		load    float64
-		battery float64
-		site    float64
-		solar   float64
-	)
-	if err := row.Scan(&stats.AsOf, &load, &battery, &site, &solar); err != nil {
-		if err == sql.ErrNoRows {
-			return stats, fmt.Errorf("topic %s: no last row", topic)
+		var (
+			load    float64
+			battery float64
+			site    float64
+			solar   float64
+		)
+		if err := row.Scan(&stats.AsOf, &load, &battery, &site, &solar); err != nil {
+			if err == sql.ErrNoRows {
+				return allStats, fmt.Errorf("topic %s: no last row", topic)
+			}
+			s := fmt.Sprintf("%+v", err)
+			return allStats, fmt.Errorf("energyByLocation() %s", s)
 		}
-		s := fmt.Sprintf("%+v", err)
-		return stats, fmt.Errorf("energyByLocation() %s", s)
+		stats.LoadInstantPower = int(load)
+		stats.BatteryInstantPower = int(battery)
+		stats.SiteInstantPower = int(site)
+		stats.SolarInstantPower = int(solar)
+		allStats = append(allStats, stats)
 	}
-	stats.LoadInstantPower = int(load)
-	stats.BatteryInstantPower = int(battery)
-	stats.SiteInstantPower = int(site)
-	stats.SolarInstantPower = int(solar)
-	return stats, nil
+	return allStats, nil
 }
 
 // batteryByLocation queries for the current information for a site.
@@ -139,7 +143,7 @@ func main() {
 	http.HandleFunc("/", helloRunHandler)
 
 	dashboardTmpl = template.Must(template.ParseFiles("dashboard.html"))
-	http.HandleFunc("/energy-vt", energyHandler)
+	http.HandleFunc("/energy", energyHandler)
 
 	fs := http.FileServer(http.Dir("./assets"))
 	http.Handle("/assets/", http.StripPrefix("/assets/", fs))
@@ -159,19 +163,26 @@ func main() {
 }
 
 func energyHandler(w http.ResponseWriter, r *http.Request) {
-	stats, err := energyByLocation("vt")
+	stats := make([]TopStats, 0)
+	stats, err := energyByLocation("ma", "vt")
 	if err != nil {
 		s := fmt.Sprintf("%+v", err)
 		http.Error(w, s, http.StatusInternalServerError)
 	}
 
 	var duration time.Duration
-	stats.BatteryCharge, duration, err = batteryByLocation("vt")
+	stats[0].BatteryCharge, duration, err = batteryByLocation("ma")
 	if err != nil {
 		s := fmt.Sprintf("%+v", err)
 		http.Error(w, s, http.StatusInternalServerError)
 	}
-	stats.QueryTime += duration
+	stats[1].BatteryCharge, duration, err = batteryByLocation("vt")
+	if err != nil {
+		s := fmt.Sprintf("%+v", err)
+		http.Error(w, s, http.StatusInternalServerError)
+	}
+	stats[0].QueryTime += duration
+	stats[1].QueryTime += duration
 	// s := fmt.Sprintf("%+v in %+v", stats, stats.queryTime)
 	// w.Write([]byte(s))
 

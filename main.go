@@ -78,7 +78,6 @@ func energyByLocation(locations ...string) ([]TopStats, error) {
 		var stats TopStats
 		topic := "energy/" + location + "/energy"
 		row := db.QueryRow("SELECT dt asof, payload->>'$.load.instant_power' ld, payload->>'$.battery.instant_power' battery, payload->>'$.site.instant_power' site, payload->>'$.solar.instant_power' solar FROM energy where topic = ? order by asOf desc limit 1;", topic)
-		stats.QueryTime = time.Since(start)
 
 		var (
 			load    float64
@@ -93,6 +92,7 @@ func energyByLocation(locations ...string) ([]TopStats, error) {
 			s := fmt.Sprintf("%+v", err)
 			return allStats, fmt.Errorf("energyByLocation() %s", s)
 		}
+		stats.QueryTime = time.Since(start)
 		stats.LoadInstantPower = int(load)
 		stats.BatteryInstantPower = int(battery)
 		stats.SiteInstantPower = int(site)
@@ -108,16 +108,16 @@ func batteryByLocation(location string) (pct int, dur time.Duration, err error) 
 
 	topic := "energy/" + location + "/battery"
 	row := db.QueryRow("SELECT dt asof, payload->>'$.percentage' pct FROM energy where topic = ? order by asOf desc limit 1;", topic)
-	duration := time.Since(start)
 	var asOf string
 	var percent float64
 	if err := row.Scan(&asOf, &percent); err != nil {
 		if err == sql.ErrNoRows {
-			return pct, duration, fmt.Errorf("topic %s: no last row", topic)
+			return pct, 0, fmt.Errorf("topic %s: no last row", topic)
 		}
 		s := fmt.Sprintf("%+v", err)
-		return pct, duration, fmt.Errorf("energyByLocation() %s", s)
+		return pct, 0, fmt.Errorf("energyByLocation() %s", s)
 	}
+	duration := time.Since(start)
 	pct = int(percent)
 	return pct, duration, nil
 }

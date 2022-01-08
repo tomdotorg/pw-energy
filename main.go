@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
 	"html/template"
@@ -10,9 +9,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/go-sql-driver/mysql"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	_ "github.com/go-sql-driver/mysql"
 )
 
 var db *sql.DB
@@ -36,28 +33,23 @@ func init() {
 }
 
 func dbConnect() {
-	// Capture connection properties.
-	cfg := mysql.Config{
-		User:                 os.Getenv("DBUSER"),
-		Passwd:               os.Getenv("DBPASS"),
-		Net:                  "tcp",
-		Addr:                 os.Getenv("DBHOST"),
-		DBName:               os.Getenv("DB"),
-		AllowNativePasswords: true,
-		ParseTime:            true,
-	}
+	dbName := os.Getenv("DB_NAME")
+	user := os.Getenv("DB_USER")
+	passwd := os.Getenv("DB_PASS")
 	instanceConnectionName := os.Getenv("INSTANCE_CONNECTION_NAME")
 	socketDir, isSet := os.LookupEnv("DB_SOCKET_DIR")
 	if !isSet {
 		socketDir = "/cloudsql"
 	}
 
-	dbURI := fmt.Sprintf("%s:%s@unix(/%s/%s)/%s?parseTime=true", cfg.User, cfg.Passwd, socketDir, instanceConnectionName, cfg.DBName)
+	dbURI := fmt.Sprintf("%s:%s@unix(%s/%s)/%s?parseTime=true",
+		user, passwd, socketDir, instanceConnectionName, dbName)
+	log.Println(dbURI)
 	// dbPool is the pool of database connections.
 	var err error
 	db, err = sql.Open("mysql", dbURI)
 	if err != nil {
-		fmt.Errorf("sql.Open: %v", err)
+		log.Fatalf("sql.Open(): %v", err)
 	}
 	// db, err = sql.Open("mysql", cfg.FormatDSN())
 	// if err != nil {
@@ -71,20 +63,20 @@ func dbConnect() {
 	log.Println("Connected!")
 }
 
-func mongoConnect() *mongo.Client {
-	connString := "mongodb+srv://" + os.Getenv("DBUSER") + ":" + os.Getenv("DBPASS") + "@" + os.Getenv("DBHOST") + "/" + os.Getenv("DBNAME")
-	log.Printf("connecting with: [%s]", connString)
-	clientOptions := options.Client().ApplyURI(connString)
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	client, err := mongo.Connect(ctx, clientOptions)
-	if err != nil {
-		log.Fatal(err)
-	} // Capture connection properties.
-	// Get a database handle.
-	log.Println("Database connected!")
-	return client
-}
+// func mongoConnect() *mongo.Client {
+// 	connString := "mongodb+srv://" + os.Getenv("DBUSER") + ":" + os.Getenv("DBPASS") + "@" + os.Getenv("DBHOST") + "/" + os.Getenv("DBNAME")
+// 	log.Printf("connecting with: [%s]", connString)
+// 	clientOptions := options.Client().ApplyURI(connString)
+// 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+// 	defer cancel()
+// 	client, err := mongo.Connect(ctx, clientOptions)
+// 	if err != nil {
+// 		log.Fatal(err)
+// 	} // Capture connection properties.
+// 	// Get a database handle.
+// 	log.Println("Database connected!")
+// 	return client
+// }
 
 type TopStats struct {
 	AsOf                time.Time

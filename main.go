@@ -111,6 +111,9 @@ func energyByLocation(locations ...string) ([]TopStats, error) {
 			s := fmt.Sprintf("%+v", err)
 			return allStats, fmt.Errorf("energyByLocation() %s", s)
 		}
+
+		loc, _ := time.LoadLocation("Local")
+		stats.AsOf = stats.AsOf.In(loc)
 		stats.QueryTime = time.Since(start)
 		stats.LoadInstantPower = int(load)
 		stats.BatteryInstantPower = int(battery)

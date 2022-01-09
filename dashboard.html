@@ -19,7 +19,7 @@
   </tr>
   <tr>
     <td>MA</td>
-    <td>{{ (index . 0).AsOf }}</td>
+    <td>{{ (index . 0).AsOf.Format "02 Jan 06 15:04:05 MST" }}</td>
     <td>{{ (index . 0).SiteInstantPower}}</td>
     <td>{{ (index . 0).LoadInstantPower}}</td>
     <td>{{ (index . 0).SolarInstantPower}}</td>

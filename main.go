@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -79,6 +80,7 @@ func dbConnect() {
 // }
 
 type TopStats struct {
+	Location            string
 	AsOf                time.Time
 	SiteInstantPower    int
 	LoadInstantPower    int
@@ -112,8 +114,9 @@ func energyByLocation(locations ...string) ([]TopStats, error) {
 			return allStats, fmt.Errorf("energyByLocation() %s", s)
 		}
 
-		loc, _ := time.LoadLocation("Local")
-		stats.AsOf = stats.AsOf.In(loc)
+		timeLoc, _ := time.LoadLocation("Local")
+		stats.Location = strings.ToUpper(location)
+		stats.AsOf = stats.AsOf.In(timeLoc)
 		stats.QueryTime = time.Since(start)
 		stats.LoadInstantPower = int(load)
 		stats.BatteryInstantPower = int(battery)

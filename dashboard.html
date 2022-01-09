@@ -8,35 +8,27 @@
 <body>
 <table border="1">
   <tr>
-    <td>Site</td>
-    <td>As Of</td>
-    <td>Site</td>
-    <td>Load</td>
-    <td>Solar</td>
-    <td>Battery</td>
-    <td>Battery Charge</td>
-    <td>Response Time</td>
+    <td><b>Site</b></td>
+    <td><b>As Of</b></td>
+    <td><b>Site</b></td>
+    <td><b>Load</b></td>
+    <td><b>Solar</b></td>
+    <td><b>Battery</b></td>
+    <td><b>Battery Charge</b></td>
+    <td><b>Response Time</b></td>
   </tr>
+  {{ range .}}
   <tr>
-    <td>MA</td>
-    <td>{{ (index . 0).AsOf.Format "02 Jan 06 15:04:05 MST" }}</td>
-    <td>{{ (index . 0).SiteInstantPower}}</td>
-    <td>{{ (index . 0).LoadInstantPower}}</td>
-    <td>{{ (index . 0).SolarInstantPower}}</td>
-    <td>{{ (index . 0).BatteryInstantPower}}</td>
-    <td>{{ (index . 0).BatteryCharge}}</td>
-    <td>{{ (index . 0).QueryTime}}</td>
+    <td>{{.Location}}</td>
+    <td>{{ .AsOf.Format "02 Jan 06 15:04:05 MST" }}</td>
+    <td>{{ .SiteInstantPower}}</td>
+    <td>{{ .LoadInstantPower}}</td>
+    <td>{{ .SolarInstantPower}}</td>
+    <td>{{ .BatteryInstantPower}}</td>
+    <td>{{ .BatteryCharge}}</td>
+    <td>{{ .QueryTime}}</td>
   </tr>
-  <tr>
-    <td>VT</td>
-    <td>{{ (index . 1).AsOf }}</td>
-    <td>{{ (index . 1).SiteInstantPower}}</td>
-    <td>{{ (index . 1).LoadInstantPower}}</td>
-    <td>{{ (index . 1).SolarInstantPower}}</td>
-    <td>{{ (index . 1).BatteryInstantPower}}</td>
-    <td>{{ (index . 1).BatteryCharge}}</td>
-    <td>{{ (index . 1).QueryTime}}</td>
-  </tr>
+  {{end}}
 </table>
 </body>
 </html>

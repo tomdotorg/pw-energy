@@ -30,6 +30,9 @@ var (
 )
 
 func init() {
+	if err := os.Setenv("TZ", "America/New_York"); err != nil {
+		log.Fatal(err)
+	}
 	dbConnect()
 }
 
@@ -86,27 +89,29 @@ type TopStats struct {
 	LoadInstantPower    int
 	BatteryInstantPower int
 	SolarInstantPower   int
-	BatteryCharge       int
+	BatteryCharge       float64
 	QueryTime           time.Duration
 }
 
 // energyByLocation queries for the current information for a site.
 func energyByLocation(locations ...string) ([]TopStats, error) {
-	start := time.Now()
 	var allStats []TopStats = make([]TopStats, 0)
 
 	for _, location := range locations {
+		start := time.Now()
 		var stats TopStats
 		topic := "energy/" + location + "/energy"
-		row := db.QueryRow("SELECT dt asof, payload->>'$.load.instant_power' ld, payload->>'$.battery.instant_power' battery, payload->>'$.site.instant_power' site, payload->>'$.solar.instant_power' solar FROM energy where topic = ? order by asOf desc limit 1;", topic)
+		// TODO figure out what is going on with this error message
+		row := db.QueryRow("SELECT dt asof, battery_percent_full pct, payload->>'$.load.instant_power' ld, payload->>'$.battery.instant_power' battery, payload->>'$.site.instant_power' site, payload->>'$.solar.instant_power' solar FROM energy where topic = ? order by asOf desc limit 1;", topic)
 
 		var (
 			load    float64
 			battery float64
 			site    float64
 			solar   float64
+			pct     float64
 		)
-		if err := row.Scan(&stats.AsOf, &load, &battery, &site, &solar); err != nil {
+		if err := row.Scan(&stats.AsOf, &pct, &load, &battery, &site, &solar); err != nil {
 			if err == sql.ErrNoRows {
 				return allStats, fmt.Errorf("topic %s: no last row", topic)
 			}
@@ -122,29 +127,10 @@ func energyByLocation(locations ...string) ([]TopStats, error) {
 		stats.BatteryInstantPower = int(battery)
 		stats.SiteInstantPower = int(site)
 		stats.SolarInstantPower = int(solar)
+		stats.BatteryCharge = pct
 		allStats = append(allStats, stats)
 	}
 	return allStats, nil
-}
-
-// batteryByLocation queries for the current information for a site.
-func batteryByLocation(location string) (pct int, dur time.Duration, err error) {
-	start := time.Now()
-
-	topic := "energy/" + location + "/battery"
-	row := db.QueryRow("SELECT dt asof, payload->>'$.percentage' pct FROM energy where topic = ? order by asOf desc limit 1;", topic)
-	var asOf string
-	var percent float64
-	if err := row.Scan(&asOf, &percent); err != nil {
-		if err == sql.ErrNoRows {
-			return pct, 0, fmt.Errorf("topic %s: no last row", topic)
-		}
-		s := fmt.Sprintf("%+v", err)
-		return pct, 0, fmt.Errorf("energyByLocation() %s", s)
-	}
-	duration := time.Since(start)
-	pct = int(percent)
-	return pct, duration, nil
 }
 
 func main() {
@@ -194,22 +180,6 @@ func energyHandler(w http.ResponseWriter, r *http.Request) {
 		s := fmt.Sprintf("%+v", err)
 		http.Error(w, s, http.StatusInternalServerError)
 	}
-
-	var duration time.Duration
-	stats[0].BatteryCharge, duration, err = batteryByLocation("ma")
-	if err != nil {
-		s := fmt.Sprintf("%+v", err)
-		http.Error(w, s, http.StatusInternalServerError)
-	}
-	stats[1].BatteryCharge, duration, err = batteryByLocation("vt")
-	if err != nil {
-		s := fmt.Sprintf("%+v", err)
-		http.Error(w, s, http.StatusInternalServerError)
-	}
-	stats[0].QueryTime += duration
-	stats[1].QueryTime += duration
-	// s := fmt.Sprintf("%+v in %+v", stats, stats.queryTime)
-	// w.Write([]byte(s))
 
 	if err := dashboardTmpl.Execute(w, stats); err != nil {
 		msg := http.StatusText(http.StatusInternalServerError)

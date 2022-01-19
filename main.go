@@ -2,15 +2,20 @@ package main
 
 import (
 	"database/sql"
+	"errors"
+	"flag"
 	"fmt"
 	"html/template"
-	"log"
 	"net/http"
 	"os"
+	"runtime/debug"
 	"strings"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog/pkgerrors"
 )
 
 var db *sql.DB
@@ -31,9 +36,8 @@ var (
 
 func init() {
 	if err := os.Setenv("TZ", "America/New_York"); err != nil {
-		log.Fatal(err)
+		log.Fatal().Str("TZ", os.Getenv("TZ")).Msg("missing or invalid TZ")
 	}
-	dbConnect()
 }
 
 func dbConnect() {
@@ -42,18 +46,19 @@ func dbConnect() {
 	passwd := os.Getenv("DB_PASS")
 	instanceConnectionName := os.Getenv("INSTANCE_CONNECTION_NAME")
 	socketDir, isSet := os.LookupEnv("DB_SOCKET_DIR")
+	// log.Debug("env", "DB_NAME", dbName).Msg("")
 	if !isSet {
 		socketDir = "/cloudsql"
 	}
 
 	dbURI := fmt.Sprintf("%s:%s@unix(%s/%s)/%s?parseTime=true",
 		user, passwd, socketDir, instanceConnectionName, dbName)
-	log.Println(dbURI)
+	// log.Print(dbURI)
 	// dbPool is the pool of database connections.
 	var err error
 	db, err = sql.Open("mysql", dbURI)
 	if err != nil {
-		log.Fatalf("sql.Open(): %v", err)
+		log.Fatal().Err(err).Msg("sql.Open()")
 	}
 	// db, err = sql.Open("mysql", cfg.FormatDSN())
 	// if err != nil {
@@ -62,9 +67,9 @@ func dbConnect() {
 	//
 	pingErr := db.Ping()
 	if pingErr != nil {
-		log.Fatal(pingErr)
+		log.Fatal().Err(pingErr).Msg("pinging db")
 	}
-	log.Println("Connected!")
+	log.Print("Connected!")
 }
 
 // func mongoConnect() *mongo.Client {
@@ -101,7 +106,6 @@ func energyByLocation(locations ...string) ([]TopStats, error) {
 		start := time.Now()
 		var stats TopStats
 		topic := "energy/" + location + "/energy"
-		// TODO figure out what is going on with this error message
 		row := db.QueryRow("SELECT dt asof, battery_percent_full pct, payload->>'$.load.instant_power' ld, payload->>'$.battery.instant_power' battery, payload->>'$.site.instant_power' site, payload->>'$.solar.instant_power' solar FROM energy where topic = ? order by asOf desc limit 1;", topic)
 
 		var (
@@ -134,6 +138,41 @@ func energyByLocation(locations ...string) ([]TopStats, error) {
 }
 
 func main() {
+	debugFlag := flag.Bool("debug", false, "sets log level to debugFlag")
+	consoleFlag := flag.Bool("console", false, "directs output to stdout on the consoleFlag")
+
+	flag.Parse()
+
+	if *consoleFlag {
+		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+	} else {
+		log.Output(os.Stdout)
+	}
+
+	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
+	err := errors.New("some error")
+	stack := string(debug.Stack())
+	log.Debug().Msg(stack)
+	log.Error().Stack().Err(err).Msg("foo")
+	// debug.PrintStack()
+	log.Error().Err(err).Stack().Msg("enabling debugFlag level logging")
+	log.Warn().Str("foo", string(3)).Msg("this is a warning")
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	if *debugFlag {
+		zerolog.SetGlobalLevel(zerolog.DebugLevel)
+		err := errors.New("some error")
+		stack := string(debug.Stack())
+		log.Debug().Msg(stack)
+		// debug.PrintStack()
+		log.Error().Stack().Err(err).Msg("enabling debugFlag level logging")
+		log.Warn().Str("foo", string(3)).Msg("this is a warning")
+	} else {
+		log.Info().Msg("info level logging enabled")
+	}
+	log.Debug().Msg("about to call dbConnect()")
+	dbConnect()
+	log.Info().Msg("done calling dbConnect()")
+
 	// Initialize template parameters.
 	service := os.Getenv("K_SERVICE")
 	if service == "" {
@@ -167,9 +206,9 @@ func main() {
 
 	log.Print("Hello from Cloud Run! The container started successfully and is listening for HTTP requests on $PORT")
 	log.Printf("Listening on port %s", port)
-	err := http.ListenAndServe(":"+port, nil)
+	err = http.ListenAndServe(":"+port, nil)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal().Err(err).Msg("http.ListenAndServe()")
 	}
 }
 

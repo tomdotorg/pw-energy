@@ -32,6 +32,7 @@ var (
 	indexData     templateData
 	indexTmpl     *template.Template
 	dashboardTmpl *template.Template
+	chartsTmpl    *template.Template
 )
 
 func init() {
@@ -96,6 +97,14 @@ type TopStats struct {
 	SolarInstantPower   int
 	BatteryCharge       float64
 	QueryTime           time.Duration
+}
+
+type ChartData struct {
+	Name       string
+	Type       string
+	NumAxis    int
+	AxisLabels []string
+	AxisData   []float64
 }
 
 // energyByLocation queries for the current information for a site.

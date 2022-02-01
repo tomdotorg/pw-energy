@@ -417,8 +417,8 @@ func getPct(location string) ([]DayBatteryPctDisplayRecord, error) {
 			return recs, err
 		}
 		pctRecord.DT = time.Unix(pctRecord.DateTime, 0).In(time.UTC).Format("2006-01-02")
-		pctRecord.LowDT = time.Unix(pctRecord.LowPctTime, 0).In(time.UTC).Format("15:04:05")
-		pctRecord.HiDT = time.Unix(pctRecord.HiPctTime, 0).In(time.UTC).Format("15:04:05")
+		pctRecord.LowDT = time.Unix(pctRecord.LowPctTime, 0).In(time.UTC).Format("15:04")
+		pctRecord.HiDT = time.Unix(pctRecord.HiPctTime, 0).In(time.UTC).Format("15:04")
 		pctRecord.AvgPct = pctRecord.TotalSamples / float64(pctRecord.NumSamples)
 		recs = append(recs, pctRecord)
 	}

@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-{{- /*gotype: []hello-run.TopStats*/ -}}
 <head>
   <meta charset="UTF-8">
   <title>Energy Dashboard</title>
@@ -8,6 +7,7 @@
 </head>
 <body>
 <table border="1">
+    {{ range .}}
   <tr>
     <td><b>Location</b></td>
     <td><b>As Of</b></td>
@@ -18,18 +18,45 @@
     <td><b>Battery Charge</b></td>
     <td><b>Response Time</b></td>
   </tr>
-  {{ range .}}
+      <tr>
+        <td>{{.Location}}</td>
+        <td>{{ .AsOf.Format "02 Jan 06 15:04:05 MST" }}</td>
+        <td>{{ .SiteInstantPower}}</td>
+        <td>{{ .LoadInstantPower}}</td>
+        <td>{{ .SolarInstantPower}}</td>
+        <td>{{ .BatteryInstantPower}}</td>
+        <td>{{ .BatteryCharge}}</td>
+        <td>{{ .QueryTime}}</td>
+      </tr>
+
   <tr>
-    <td>{{.Location}}</td>
-    <td>{{ .AsOf.Format "02 Jan 06 15:04:05 MST" }}</td>
-    <td>{{ .SiteInstantPower}}</td>
-    <td>{{ .LoadInstantPower}}</td>
-    <td>{{ .SolarInstantPower}}</td>
-    <td>{{ .BatteryInstantPower}}</td>
-    <td>{{ .BatteryCharge}}</td>
-    <td>{{ .QueryTime}}</td>
+    <td><b>Day</b></td>
+    <td><b>Batt Hi</b></td>
+    <td><b>HighTime</b></td>
+    <td><b>Batt Low</b></td>
+    <td><b>LowTime</b></td>
+    <td><b>Batt Samples</b></td>
+    <td><b>Total</b></td>
+    <td><b>Batt Avg</b></td>
   </tr>
-  {{end}}
+    {{ range .Pct}}
+      <tr>
+        <td>{{ .DT }}</td>
+        <td>{{ .HiPct}}</td>
+        <td>{{ .HiDT}}</td>
+        <td>{{ .LowPct}}</td>
+        <td>{{ .LowDT}}</td>
+        <td>{{ .NumSamples}}</td>
+        <td>{{ .TotalSamples}}</td>
+        <td>{{ .AvgPct}}</td>
+      </tr>
+    {{end}}
+  <tr></tr>
+  <tr></tr>
+  <tr></tr>
+
+{{end}}
 </table>
+
 </body>
 </html>

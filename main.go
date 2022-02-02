@@ -397,7 +397,11 @@ func getStats(msg mqtt.Message) error {
 */
 
 func getPct(location string) ([]DayBatteryPctDisplayRecord, error) {
-	rows, err := db.Query("select * from day_battery_pct where location = ? order by datetime desc", location)
+	rows, err := db.Query(
+		"select location, datetime, hi_pct, hi_pct_dt, low_pct, low_pct_dt, "+
+			"num_samples, total_samples from day_battery_pct where location = ? order by datetime desc",
+		location,
+	)
 	if err != nil {
 		log.Error().Err(err).Stack().Msg("error querying for update")
 		return nil, err

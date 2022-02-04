@@ -40,9 +40,6 @@ func init() {
 	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 
-	if err := os.Setenv("TZ", "America/New_York"); err != nil {
-		log.Fatal().Str("TZ", os.Getenv("TZ")).Msg("setting env.. missing or invalid TZ")
-	}
 	debugFlag := flag.Bool("debug", false, "sets log level to debugFlag")
 	consoleFlag := flag.Bool("console", false, "directs output to stdout on the consoleFlag")
 

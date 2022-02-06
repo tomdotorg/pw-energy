@@ -58,61 +58,45 @@
     <td><b>Time</b></td>
     <td><b>Site Low</b></td>
     <td><b>Time</b></td>
-    <td><b>Site Samples</b></td>
-    <td><b>Total</b></td>
     <td><b>Site Avg</b></td>
     <td><b>Load Hi</b></td>
     <td><b>Time</b></td>
     <td><b>Load Low</b></td>
     <td><b>Time</b></td>
-    <td><b>Load Samples</b></td>
-    <td><b>Total</b></td>
     <td><b>Load Avg</b></td>
     <td><b>Solar Hi</b></td>
     <td><b>Time</b></td>
     <td><b>Solar Low</b></td>
     <td><b>Time</b></td>
-    <td><b>Solar Samples</b></td>
-    <td><b>Total</b></td>
     <td><b>Solar Avg</b></td>
     <td><b>Batt Hi</b></td>
     <td><b>Time</b></td>
     <td><b>Batt Low</b></td>
     <td><b>Time</b></td>
-    <td><b>Batt Samples</b></td>
-    <td><b>Total</b></td>
     <td><b>Batt Avg</b></td>
   </tr>
   {{ range .StatsHistory}}
     <tr>
       <td>{{ .DT }}</td>
-      <td>{{ printf "%.2f" .HiSite}}</td>
+      <td>{{ printf "%.0f" .HiSite}}</td>
       <td>{{ .HiSiteDT}}</td>
-      <td>{{ printf "%.2f" .LowSite}}</td>
+      <td>{{ printf "%.0f" .LowSite}}</td>
       <td>{{ .LowSiteDT}}</td>
-      <td>{{ printf "%d" .NumSiteSamples}}</td>
-      <td>{{ printf "%.2f" .TotalSiteSamples}}</td>
       <td>{{ printf "%.2f" .SiteAvg}}</td>
       <td>{{ printf "%.2f" .HiLoad}}</td>
       <td>{{ .HiLoadDT}}</td>
       <td>{{ printf "%.2f" .LowLoad}}</td>
       <td>{{ .LowLoadDT}}</td>
-      <td>{{ printf "%d" .NumLoadSamples}}</td>
-      <td>{{ printf "%.0f" .TotalLoadSamples}}</td>
       <td>{{ printf "%.2f" .LoadAvg}}</td>
-      <td>{{ printf "%.2f" .HiBattery}}</td>
+      <td>{{ printf "%.0f" .HiBattery}}</td>
       <td>{{ .HiBatteryDT}}</td>
-      <td>{{ printf "%.2f" .LowBattery}}</td>
+      <td>{{ printf "%.0f" .LowBattery}}</td>
       <td>{{ .LowBatteryDT}}</td>
-      <td>{{ printf "%d" .NumBatterySamples}}</td>
-      <td>{{ printf "%.0f" .TotalBatterySamples}}</td>
       <td>{{ printf "%.2f" .BatteryAvg}}</td>
-      <td>{{ printf "%.2f" .HiSolar}}</td>
+      <td>{{ printf "%.0f" .HiSolar}}</td>
       <td>{{ .HiSolarDT}}</td>
-      <td>{{ printf "%.2f" .LowSolar}}</td>
+      <td>{{ printf "%.0f" .LowSolar}}</td>
       <td>{{ .LowSolarDT}}</td>
-      <td>{{ printf "%d" .NumSolarSamples}}</td>
-      <td>{{ printf "%.0f" .TotalSolarSamples}}</td>
       <td>{{ printf "%.2f" .SolarAvg}}</td>
     </tr>
   {{end}}

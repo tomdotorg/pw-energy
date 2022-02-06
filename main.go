@@ -170,7 +170,7 @@ type ChartData struct {
 }
 
 // energyByLocation queries for the current information for a site.
-func energyByLocation(locations ...string) ([]TopStats, error) {
+func energyByLocation(locations []string) ([]TopStats, error) {
 	var allStats []TopStats = make([]TopStats, 0)
 
 	for _, location := range locations {
@@ -258,7 +258,16 @@ func main() {
 
 func energyHandler(w http.ResponseWriter, r *http.Request) {
 	stats := make([]TopStats, 0)
-	stats, err := energyByLocation("ma", "vt")
+	var locations []string
+	keys, ok := r.URL.Query()["location"]
+	if !ok || len(keys[0]) < 1 {
+		log.Info().Msg("Url Param 'location' is missing")
+		locations = []string{"MA", "VT"}
+	} else {
+		locations = []string{keys[0]}
+	}
+
+	stats, err := energyByLocation(locations)
 	if err != nil {
 		s := fmt.Sprintf("%+v", err)
 		http.Error(w, s, http.StatusInternalServerError)

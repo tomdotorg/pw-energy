@@ -54,6 +54,7 @@
 
   <tr>
     <td><b>Day</b></td>
+    <td><b>Samples</b></td>
     <td><b>Site Hi</b></td>
     <td><b>Time</b></td>
     <td><b>Site Low</b></td>
@@ -78,6 +79,7 @@
   {{ range .StatsHistory}}
     <tr>
       <td>{{ .DT }}</td>
+      <td>{{ printf "%d" .NumBatterySamples }}</td>
       <td>{{ printf "%.0f" .HiSite}}</td>
       <td>{{ .HiSiteDT}}</td>
       <td>{{ printf "%.0f" .LowSite}}</td>

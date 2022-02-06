@@ -84,32 +84,12 @@ func dbConnect() {
 	if err != nil {
 		log.Fatal().Err(err).Msg("sql.Open()")
 	}
-	// db, err = sql.Open("mysql", cfg.FormatDSN())
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	//
 	pingErr := db.Ping()
 	if pingErr != nil {
 		log.Fatal().Err(pingErr).Stack().Msg("pinging db")
 	}
 	log.Print("Connected!")
 }
-
-// func mongoConnect() *mongo.Client {
-// 	connString := "mongodb+srv://" + os.Getenv("DBUSER") + ":" + os.Getenv("DBPASS") + "@" + os.Getenv("DBHOST") + "/" + os.Getenv("DBNAME")
-// 	log.Printf("connecting with: [%s]", connString)
-// 	clientOptions := options.Client().ApplyURI(connString)
-// 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-// 	defer cancel()
-// 	client, err := mongo.Connect(ctx, clientOptions)
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	} // Capture connection properties.
-// 	// Get a database handle.
-// 	log.Println("Database connected!")
-// 	return client
-// }
 
 type TopStats struct {
 	Location            string
@@ -120,7 +100,8 @@ type TopStats struct {
 	SolarInstantPower   int
 	BatteryCharge       float64
 	QueryTime           time.Duration
-	Pct                 []DayBatteryPctDisplayRecord
+	PctHistory          []DayBatteryPctDisplayRecord
+	StatsHistory        []StatsDisplayRecord
 }
 
 type DayBatteryPctDisplayRecord struct {
@@ -138,33 +119,46 @@ type DayBatteryPctDisplayRecord struct {
 	AvgPct       float64
 }
 
-type StatsRecord struct {
+type StatsDisplayRecord struct {
 	Location            string
 	DateTime            int64
+	DT                  string
 	HiSite              float64
 	HiSiteTime          int64
+	HiSiteDT            string
 	LowSite             float64
 	LowSiteTime         int64
+	LowSiteDT           string
 	NumSiteSamples      int
 	TotalSiteSamples    float64
+	SiteAvg             float64
 	HiLoad              float64
 	HiLoadTime          int64
+	HiLoadDT            string
 	LowLoad             float64
 	LowLoadTime         int64
+	LowLoadDT           string
 	NumLoadSamples      int
 	TotalLoadSamples    float64
+	LoadAvg             float64
 	HiBattery           float64
 	HiBatteryTime       int64
+	HiBatteryDT         string
 	LowBattery          float64
 	LowBatteryTime      int64
+	LowBatteryDT        string
 	NumBatterySamples   int
 	TotalBatterySamples float64
+	BatteryAvg          float64
 	HiSolar             float64
 	HiSolarTime         int64
+	HiSolarDT           string
 	LowSolar            float64
 	LowSolarTime        int64
+	LowSolarDT          string
 	NumSolarSamples     int
 	TotalSolarSamples   float64
+	SolarAvg            float64
 }
 
 type ChartData struct {
@@ -210,11 +204,20 @@ func energyByLocation(locations ...string) ([]TopStats, error) {
 		stats.SolarInstantPower = int(solar)
 		stats.BatteryCharge = pct
 
-		history, err := getPct(location)
+		// Battery percent history
+		battHistory, err := getPct(location)
 		if err != nil {
 			log.Error().Err(err).Msg("getPct()")
 		}
-		stats.Pct = history
+		stats.PctHistory = battHistory
+
+		// Stats history
+		statsHistory, err := getStats(location)
+		if err != nil {
+			log.Error().Err(err).Msg("getPct()")
+		}
+		stats.StatsHistory = statsHistory
+		log.Debug().Msgf("statsHistory: %+v", statsHistory)
 		allStats = append(allStats, stats)
 	}
 	return allStats, nil
@@ -268,7 +271,7 @@ func energyHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
-// helloRunHandler responds to requests by rendering an HTML page.
+// helloRunHandler responds by rendering an HTML page.
 func helloRunHandler(w http.ResponseWriter, r *http.Request) {
 	if err := indexTmpl.Execute(w, indexData); err != nil {
 		msg := http.StatusText(http.StatusInternalServerError)
@@ -277,24 +280,16 @@ func helloRunHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-/*
-func getStats(msg mqtt.Message) error {
-	location := topics[msg.Topic()]
-	var soc SocRecord
-	err := json.Unmarshal(msg.Payload(), &soc)
-	if err != nil {
-		return fmt.Errorf("addStats(): %+v", err)
-	}
-	log.Debug().Msgf("addStats(): %+v", soc)
-	dt := getMidnightInUnix(soc.AsOf)
+func getStats(location string) ([]StatsDisplayRecord, error) {
 	rows, err := db.Query(`select location, datetime,
        hi_site, hi_site_dt, low_site, low_site_dt, num_site_samples, total_site_samples,
 		   hi_load, hi_load_dt, low_load, low_load_dt, num_load_samples, total_load_samples,
 		   hi_battery, hi_battery_dt, low_battery, low_battery_dt, num_battery_samples, total_battery_samples,
 		   hi_solar, hi_solar_dt, low_solar, low_solar_dt, num_solar_samples, total_solar_samples
-			from day_top_stats where location = ? and datetime = ? for update`, location, dt)
+			from day_top_stats where location = ? order by datetime desc`, location)
 	if err != nil {
-		return fmt.Errorf("addStats(): %+v", err)
+		log.Error().Err(err).Msgf("getStats(): %+v", err)
+		return nil, err
 	}
 	defer func(rows *sql.Rows) {
 		err := rows.Close()
@@ -302,96 +297,36 @@ func getStats(msg mqtt.Message) error {
 			log.Fatal().Err(err).Stack().Msg("error closing rows")
 		}
 	}(rows)
-	if rows.Next() {
-		var dbStats StatsRecord
+	recs := make([]StatsDisplayRecord, 0)
+
+	for rows.Next() {
+		var dbStats StatsDisplayRecord
 		err = rows.Scan(&dbStats.Location, &dbStats.DateTime,
 			&dbStats.HiSite, &dbStats.HiSiteTime, &dbStats.LowSite, &dbStats.LowSiteTime, &dbStats.NumSiteSamples, &dbStats.TotalSiteSamples,
 			&dbStats.HiLoad, &dbStats.HiLoadTime, &dbStats.LowLoad, &dbStats.LowLoadTime, &dbStats.NumLoadSamples, &dbStats.TotalLoadSamples,
 			&dbStats.HiBattery, &dbStats.HiBatteryTime, &dbStats.LowBattery, &dbStats.LowBatteryTime, &dbStats.NumBatterySamples, &dbStats.TotalBatterySamples,
 			&dbStats.HiSolar, &dbStats.HiSolarTime, &dbStats.LowSolar, &dbStats.LowSolarTime, &dbStats.NumSolarSamples, &dbStats.TotalSolarSamples)
 		if err != nil {
-			return fmt.Errorf("addStats(): %+v", err)
+			log.Error().Err(err).Msgf("getStats(): %+v", err)
+			return nil, err
 		}
-		_, err = db.Exec(`update day_top_stats set
-                         num_site_samples = num_site_samples + 1, total_site_samples = total_site_samples + ?,
-                         num_load_samples = num_load_samples + 1, total_load_samples = total_load_samples + ?,
-                         num_battery_samples = num_battery_samples + 1, total_battery_samples = total_battery_samples + ?,
-                         num_solar_samples = num_solar_samples + 1, total_solar_samples = total_solar_samples + ?
-                         where datetime = ? and location = ?`, soc.Site.InstantPower, soc.Load.InstantPower,
-			soc.Battery.InstantPower, soc.Solar.InstantPower, dt, location)
-		if err != nil {
-			return fmt.Errorf("addStats(): %+v", err)
-		}
-
-		if soc.Site.InstantPower > dbStats.HiSite {
-			_, err = db.Exec("update day_top_stats set hi_site = ?, hi_site_dt = ? where datetime = ? and location = ?",
-				soc.Site.InstantPower, soc.AsOf.Unix(), dt, location)
-		}
-		if err != nil {
-			return fmt.Errorf("addStats(): %+v", err)
-		}
-		if soc.Site.InstantPower < dbStats.LowSite {
-			_, err = db.Exec("update day_top_stats set low_site = ?, low_site_dt = ? where datetime = ? and location = ?",
-				soc.Site.InstantPower, soc.AsOf.Unix(), dt, location)
-		}
-		if err != nil {
-			return fmt.Errorf("addStats(): %+v", err)
-		}
-		if soc.Load.InstantPower > dbStats.HiLoad {
-			_, err = db.Exec("update day_top_stats set hi_load = ?, hi_load_dt = ? where datetime = ? and location = ?",
-				soc.Load.InstantPower, soc.AsOf.Unix(), dt, location)
-		}
-		if err != nil {
-			return fmt.Errorf("addStats(): %+v", err)
-		}
-		if soc.Load.InstantPower < dbStats.LowLoad {
-			_, err = db.Exec("update day_top_stats set low_load = ?, low_load_dt = ? where datetime = ? and location = ?",
-				soc.Load.InstantPower, soc.AsOf.Unix(), dt, location)
-		}
-		if err != nil {
-			return fmt.Errorf("addStats(): %+v", err)
-		}
-		if soc.Battery.InstantPower > dbStats.HiBattery {
-			_, err = db.Exec("update day_top_stats set hi_battery = ?, hi_battery_dt = ? where datetime = ? and location = ?",
-				soc.Battery.InstantPower, soc.AsOf.Unix(), dt, location)
-		}
-		if err != nil {
-			return fmt.Errorf("addStats(): %+v", err)
-		}
-		if soc.Battery.InstantPower < dbStats.LowBattery {
-			_, err = db.Exec("update day_top_stats set low_battery = ?, low_battery_dt = ? where datetime = ? and location = ?",
-				soc.Battery.InstantPower, soc.AsOf.Unix(), dt, location)
-		}
-		if err != nil {
-			return fmt.Errorf("addStats(): %+v", err)
-		}
-		if soc.Solar.InstantPower > dbStats.HiSolar {
-			_, err = db.Exec("update day_top_stats set hi_solar = ?, hi_solar_dt = ? where datetime = ? and location = ?",
-				soc.Solar.InstantPower, soc.AsOf.Unix(), dt, location)
-		}
-		if err != nil {
-			return fmt.Errorf("addStats(): %+v", err)
-		}
-		if soc.Solar.InstantPower < dbStats.LowSolar {
-			_, err = db.Exec("update day_top_stats set low_solar = ?, low_solar_dt = ? where datetime = ? and location = ?",
-				soc.Solar.InstantPower, soc.AsOf.Unix(), dt, location)
-		}
-		if err != nil {
-			return fmt.Errorf("addStats(): %+v", err)
-		}
-	} else {
-		_, err = db.Exec("insert into day_top_stats (datetime, location, hi_site, hi_site_dt, low_site, low_site_dt, num_site_samples, total_site_samples, hi_load, hi_load_dt, low_load, low_load_dt, num_load_samples, total_load_samples, hi_battery, hi_battery_dt, low_battery, low_battery_dt, num_battery_samples, total_battery_samples, hi_solar, hi_solar_dt, low_solar, low_solar_dt, num_solar_samples, total_solar_samples) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-			dt, location, soc.Site.InstantPower, soc.AsOf.Unix(), soc.Site.InstantPower, soc.AsOf.Unix(), 1, soc.Site.InstantPower,
-			soc.Load.InstantPower, soc.AsOf.Unix(), soc.Load.InstantPower, soc.AsOf.Unix(), 1, soc.Load.InstantPower,
-			soc.Battery.InstantPower, soc.AsOf.Unix(), soc.Battery.InstantPower, soc.AsOf.Unix(), 1, soc.Battery.InstantPower,
-			soc.Solar.InstantPower, soc.AsOf.Unix(), soc.Solar.InstantPower, soc.AsOf.Unix(), 1, soc.Solar.InstantPower)
-		if err != nil {
-			return fmt.Errorf("addStats(): %+v", err)
-		}
+		dbStats.DT = time.Unix(dbStats.DateTime, 0).Format("2006-01-02")
+		dbStats.LowSiteDT = time.Unix(dbStats.LowSiteTime, 0).Format("15:04")
+		dbStats.HiSiteDT = time.Unix(dbStats.HiSiteTime, 0).Format("15:04")
+		dbStats.SiteAvg = dbStats.TotalSiteSamples / float64(dbStats.NumSiteSamples)
+		dbStats.LowBatteryDT = time.Unix(dbStats.LowBatteryTime, 0).Format("15:04")
+		dbStats.HiBatteryDT = time.Unix(dbStats.HiBatteryTime, 0).Format("15:04")
+		dbStats.BatteryAvg = dbStats.TotalBatterySamples / float64(dbStats.NumBatterySamples)
+		dbStats.LowLoadDT = time.Unix(dbStats.LowLoadTime, 0).Format("15:04")
+		dbStats.HiLoadDT = time.Unix(dbStats.HiLoadTime, 0).Format("15:04")
+		dbStats.LoadAvg = dbStats.TotalLoadSamples / float64(dbStats.NumLoadSamples)
+		dbStats.LowSolarDT = time.Unix(dbStats.LowSolarTime, 0).Format("15:04")
+		dbStats.HiSolarDT = time.Unix(dbStats.HiSolarTime, 0).Format("15:04")
+		dbStats.SolarAvg = dbStats.TotalSolarSamples / float64(dbStats.NumSolarSamples)
+		recs = append(recs, dbStats)
 	}
-	return nil
+	return recs, nil
 }
-*/
 
 func getPct(location string) ([]DayBatteryPctDisplayRecord, error) {
 	rows, err := db.Query(
@@ -423,5 +358,5 @@ func getPct(location string) ([]DayBatteryPctDisplayRecord, error) {
 		pctRecord.AvgPct = pctRecord.TotalSamples / float64(pctRecord.NumSamples)
 		recs = append(recs, pctRecord)
 	}
-	return recs, err
+	return recs, nil
 }

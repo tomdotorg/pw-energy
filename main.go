@@ -197,7 +197,6 @@ func energyByLocation(locations ...string) ([]TopStats, error) {
 		timeLoc, _ := time.LoadLocation("Local")
 		stats.Location = strings.ToUpper(location)
 		stats.AsOf = stats.AsOf.In(timeLoc)
-		stats.QueryTime = time.Since(start)
 		stats.LoadInstantPower = int(load)
 		stats.BatteryInstantPower = int(battery)
 		stats.SiteInstantPower = int(site)
@@ -218,6 +217,7 @@ func energyByLocation(locations ...string) ([]TopStats, error) {
 		}
 		stats.StatsHistory = statsHistory
 		log.Debug().Msgf("statsHistory: %+v", statsHistory)
+		stats.QueryTime = time.Since(start)
 		allStats = append(allStats, stats)
 	}
 	return allStats, nil

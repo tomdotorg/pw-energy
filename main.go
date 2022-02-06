@@ -216,7 +216,7 @@ func energyByLocation(locations ...string) ([]TopStats, error) {
 			log.Error().Err(err).Msg("getPct()")
 		}
 		stats.StatsHistory = statsHistory
-		log.Debug().Msgf("statsHistory: %+v", statsHistory)
+		// log.Debug().Msgf("statsHistory: %+v", statsHistory)
 		stats.QueryTime = time.Since(start)
 		allStats = append(allStats, stats)
 	}

@@ -102,13 +102,6 @@
           <td>{{ printf "%.2f" .LoadImported }}</td>
           <td>{{ printf "%.2f" .LoadExported }}</td>
           <td>{{ printf "%.2f" .LoadAvg}}</td>
-          <td>{{ printf "%.0f" .HiBattery}}</td>
-          <td>{{ .HiBatteryDT}}</td>
-          <td>{{ printf "%.0f" .LowBattery}}</td>
-          <td>{{ .LowBatteryDT}}</td>
-          <td>{{ printf "%.2f" .BatteryImported }}</td>
-          <td>{{ printf "%.2f" .BatteryExported }}</td>
-          <td>{{ printf "%.2f" .BatteryAvg}}</td>
           <td>{{ printf "%.0f" .HiSolar}}</td>
           <td>{{ .HiSolarDT}}</td>
           <td>{{ printf "%.0f" .LowSolar}}</td>
@@ -116,6 +109,13 @@
           <td>{{ printf "%.2f" .SolarImported }}</td>
           <td>{{ printf "%.2f" .SolarExported }}</td>
           <td>{{ printf "%.2f" .SolarAvg}}</td>
+          <td>{{ printf "%.0f" .HiBattery}}</td>
+          <td>{{ .HiBatteryDT}}</td>
+          <td>{{ printf "%.0f" .LowBattery}}</td>
+          <td>{{ .LowBatteryDT}}</td>
+          <td>{{ printf "%.2f" .BatteryImported }}</td>
+          <td>{{ printf "%.2f" .BatteryExported }}</td>
+          <td>{{ printf "%.2f" .BatteryAvg}}</td>
         </tr>
       {{end}}
       <tr></tr>

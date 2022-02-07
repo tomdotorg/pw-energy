@@ -129,6 +129,8 @@ type StatsDisplayRecord struct {
 	LowSite             float64
 	LowSiteTime         int64
 	LowSiteDT           string
+	SiteImported        float64
+	SiteExported        float64
 	NumSiteSamples      int
 	TotalSiteSamples    float64
 	SiteAvg             float64
@@ -138,6 +140,8 @@ type StatsDisplayRecord struct {
 	LowLoad             float64
 	LowLoadTime         int64
 	LowLoadDT           string
+	LoadImported        float64
+	LoadExported        float64
 	NumLoadSamples      int
 	TotalLoadSamples    float64
 	LoadAvg             float64
@@ -147,6 +151,8 @@ type StatsDisplayRecord struct {
 	LowBattery          float64
 	LowBatteryTime      int64
 	LowBatteryDT        string
+	BatteryImported     float64
+	BatteryExported     float64
 	NumBatterySamples   int
 	TotalBatterySamples float64
 	BatteryAvg          float64
@@ -156,6 +162,8 @@ type StatsDisplayRecord struct {
 	LowSolar            float64
 	LowSolarTime        int64
 	LowSolarDT          string
+	SolarImported       float64
+	SolarExported       float64
 	NumSolarSamples     int
 	TotalSolarSamples   float64
 	SolarAvg            float64
@@ -291,10 +299,10 @@ func helloRunHandler(w http.ResponseWriter, r *http.Request) {
 
 func getStats(location string) ([]StatsDisplayRecord, error) {
 	rows, err := db.Query(`select location, datetime,
-       hi_site, hi_site_dt, low_site, low_site_dt, num_site_samples, total_site_samples,
-		   hi_load, hi_load_dt, low_load, low_load_dt, num_load_samples, total_load_samples,
-		   hi_battery, hi_battery_dt, low_battery, low_battery_dt, num_battery_samples, total_battery_samples,
-		   hi_solar, hi_solar_dt, low_solar, low_solar_dt, num_solar_samples, total_solar_samples
+       hi_site, hi_site_dt, low_site, low_site_dt, site_energy_imported, site_energy_exported, num_site_samples, total_site_samples,
+		   hi_load, hi_load_dt, low_load, low_load_dt, load_energy_imported, load_energy_exported, num_load_samples, total_load_samples,
+		   hi_battery, hi_battery_dt, low_battery, low_battery_dt, battery_energy_imported, battery_energy_exported, num_battery_samples, total_battery_samples,
+		   hi_solar, hi_solar_dt, low_solar, low_solar_dt, solar_energy_imported, solar_energy_exported, num_solar_samples, total_solar_samples
 			from day_top_stats where location = ? order by datetime desc`, location)
 	if err != nil {
 		log.Error().Err(err).Msgf("getStats(): %+v", err)
@@ -311,10 +319,10 @@ func getStats(location string) ([]StatsDisplayRecord, error) {
 	for rows.Next() {
 		var dbStats StatsDisplayRecord
 		err = rows.Scan(&dbStats.Location, &dbStats.DateTime,
-			&dbStats.HiSite, &dbStats.HiSiteTime, &dbStats.LowSite, &dbStats.LowSiteTime, &dbStats.NumSiteSamples, &dbStats.TotalSiteSamples,
-			&dbStats.HiLoad, &dbStats.HiLoadTime, &dbStats.LowLoad, &dbStats.LowLoadTime, &dbStats.NumLoadSamples, &dbStats.TotalLoadSamples,
-			&dbStats.HiBattery, &dbStats.HiBatteryTime, &dbStats.LowBattery, &dbStats.LowBatteryTime, &dbStats.NumBatterySamples, &dbStats.TotalBatterySamples,
-			&dbStats.HiSolar, &dbStats.HiSolarTime, &dbStats.LowSolar, &dbStats.LowSolarTime, &dbStats.NumSolarSamples, &dbStats.TotalSolarSamples)
+			&dbStats.HiSite, &dbStats.HiSiteTime, &dbStats.LowSite, &dbStats.LowSiteTime, &dbStats.SiteImported, &dbStats.SiteExported, &dbStats.NumSiteSamples, &dbStats.TotalSiteSamples,
+			&dbStats.HiLoad, &dbStats.HiLoadTime, &dbStats.LowLoad, &dbStats.LowLoadTime, &dbStats.LoadImported, &dbStats.LoadExported, &dbStats.NumLoadSamples, &dbStats.TotalLoadSamples,
+			&dbStats.HiBattery, &dbStats.HiBatteryTime, &dbStats.LowBattery, &dbStats.LowBatteryTime, &dbStats.BatteryImported, &dbStats.BatteryExported, &dbStats.NumBatterySamples, &dbStats.TotalBatterySamples,
+			&dbStats.HiSolar, &dbStats.HiSolarTime, &dbStats.LowSolar, &dbStats.LowSolarTime, &dbStats.SolarImported, &dbStats.SolarExported, &dbStats.NumSolarSamples, &dbStats.TotalSolarSamples)
 		if err != nil {
 			log.Error().Err(err).Msgf("getStats(): %+v", err)
 			return nil, err

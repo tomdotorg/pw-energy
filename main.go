@@ -27,68 +27,11 @@ type templateData struct {
 	Stats    TopStats
 }
 
-// Variables used to generate the HTML page.
-var (
-	indexData     templateData
-	indexTmpl     *template.Template
-	dashboardTmpl *template.Template
-	chartsTmpl    *template.Template
-)
-
-func init() {
-	// initialize the logger
-	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
-	zerolog.SetGlobalLevel(zerolog.InfoLevel)
-
-	debugFlag := flag.Bool("debug", false, "sets log level to debugFlag")
-	consoleFlag := flag.Bool("console", false, "directs output to stdout on the consoleFlag")
-
-	flag.Parse()
-
-	if *consoleFlag {
-		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
-	} else {
-		log.Output(os.Stdout)
-	}
-
-	if *debugFlag {
-		zerolog.SetGlobalLevel(zerolog.DebugLevel)
-		err := errors.New("some error")
-		stack := string(debug.Stack())
-		log.Debug().Msg(stack)
-		// debug.PrintStack()
-		log.Error().Stack().Err(err).Msg("enabling debugFlag level logging")
-		log.Warn().Str("foo", string(3)).Msg("this is a warning")
-	} else {
-		log.Info().Msg("info level logging enabled")
-	}
-}
-
-func dbConnect() {
-	dbName := os.Getenv("DB_NAME")
-	user := os.Getenv("DB_USER")
-	passwd := os.Getenv("DB_PASS")
-	instanceConnectionName := os.Getenv("INSTANCE_CONNECTION_NAME")
-	socketDir, isSet := os.LookupEnv("DB_SOCKET_DIR")
-	// log.Debug("env", "DB_NAME", dbName).Msg("")
-	if !isSet {
-		socketDir = "/cloudsql"
-	}
-
-	dbURI := fmt.Sprintf("%s:%s@unix(%s/%s)/%s?parseTime=true",
-		user, passwd, socketDir, instanceConnectionName, dbName)
-	// log.Print(dbURI)
-	// dbPool is the pool of database connections.
-	var err error
-	db, err = sql.Open("mysql", dbURI)
-	if err != nil {
-		log.Fatal().Err(err).Msg("sql.Open()")
-	}
-	pingErr := db.Ping()
-	if pingErr != nil {
-		log.Fatal().Err(pingErr).Stack().Msg("pinging db")
-	}
-	log.Print("Connected!")
+type PctDisplayRecord struct {
+	location       string
+	topic          string
+	dt             time.Time
+	percentCharged float64
 }
 
 type TopStats struct {
@@ -99,6 +42,7 @@ type TopStats struct {
 	BatteryInstantPower int
 	SolarInstantPower   int
 	BatteryCharge       float64
+	BatteryChargeAsOf   time.Time
 	QueryTime           time.Duration
 	PctHistory          []DayBatteryPctDisplayRecord
 	StatsHistory        []StatsDisplayRecord
@@ -177,29 +121,103 @@ type ChartData struct {
 	AxisData   []float64
 }
 
+// Variables used to generate the HTML page.
+var (
+	indexData     templateData
+	indexTmpl     *template.Template
+	dashboardTmpl *template.Template
+	chartsTmpl    *template.Template
+)
+
+func init() {
+	// initialize the logger
+	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+
+	debugFlag := flag.Bool("debug", false, "sets log level to debugFlag")
+	consoleFlag := flag.Bool("console", false, "directs output to stdout on the consoleFlag")
+
+	flag.Parse()
+
+	if *consoleFlag {
+		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+	} else {
+		log.Output(os.Stdout)
+	}
+
+	if *debugFlag {
+		zerolog.SetGlobalLevel(zerolog.DebugLevel)
+		err := errors.New("some error")
+		stack := string(debug.Stack())
+		log.Debug().Msg(stack)
+		// debug.PrintStack()
+		log.Error().Stack().Err(err).Msg("enabling debugFlag level logging")
+		log.Warn().Str("foo", string(3)).Msg("this is a warning")
+	} else {
+		log.Info().Msg("info level logging enabled")
+	}
+}
+
+func dbConnect() {
+	dbName := os.Getenv("DB_NAME")
+	user := os.Getenv("DB_USER")
+	passwd := os.Getenv("DB_PASS")
+	instanceConnectionName := os.Getenv("INSTANCE_CONNECTION_NAME")
+	socketDir, isSet := os.LookupEnv("DB_SOCKET_DIR")
+	// log.Debug("env", "DB_NAME", dbName).Msg("")
+	if !isSet {
+		socketDir = "/cloudsql"
+	}
+
+	dbURI := fmt.Sprintf("%s:%s@unix(%s/%s)/%s?parseTime=true",
+		user, passwd, socketDir, instanceConnectionName, dbName)
+	// log.Print(dbURI)
+	// dbPool is the pool of database connections.
+	var err error
+	db, err = sql.Open("mysql", dbURI)
+	if err != nil {
+		log.Fatal().Err(err).Msg("sql.Open()")
+	}
+	pingErr := db.Ping()
+	if pingErr != nil {
+		log.Fatal().Err(pingErr).Stack().Msg("pinging db")
+	}
+	log.Print("Connected!")
+}
+
 // energyByLocation queries for the current information for a site.
 func energyByLocation(locations []string) ([]TopStats, error) {
 	var allStats []TopStats = make([]TopStats, 0)
 
 	for _, location := range locations {
-		start := time.Now()
-		var stats TopStats
-		topic := "energy/" + location + "/energy"
-		row := db.QueryRow("SELECT dt asof, battery_percent_full pct, payload->>'$.load.instant_power' ld, payload->>'$.battery.instant_power' battery, payload->>'$.site.instant_power' site, payload->>'$.solar.instant_power' solar FROM energy where topic = ? order by asOf desc limit 1;", topic)
-
 		var (
 			load    float64
 			battery float64
 			site    float64
 			solar   float64
-			pct     float64
 		)
-		if err := row.Scan(&stats.AsOf, &pct, &load, &battery, &site, &solar); err != nil {
+		start := time.Now()
+		var stats TopStats
+		topic := "energy/" + location + "/energy"
+		row := db.QueryRow("SELECT dt asof, payload->>'$.load.instant_power' ld, payload->>'$.battery.instant_power' battery, payload->>'$.site.instant_power' site, payload->>'$.solar.instant_power' solar FROM energy where topic = ? order by asOf desc limit 1;", topic)
+
+		if err := row.Scan(&stats.AsOf, &load, &battery, &site, &solar); err != nil {
 			if err == sql.ErrNoRows {
 				return allStats, fmt.Errorf("topic %s: no last row", topic)
 			}
 			s := fmt.Sprintf("%+v", err)
 			return allStats, fmt.Errorf("energyByLocation() %s", s)
+		}
+
+		row = db.QueryRow("SELECT dt asof, percent_charged FROM battery where location = ? order by asOf desc limit 1;", location)
+
+		if err := row.Scan(&stats.BatteryChargeAsOf, &stats.BatteryCharge); err != nil {
+			if err == sql.ErrNoRows {
+				log.Error().Err(err).Msg("no battery charge data")
+				return allStats, err
+			}
+			log.Error().Err(err).Msg("no battery charge data")
+			return allStats, err
 		}
 
 		timeLoc, _ := time.LoadLocation("Local")
@@ -209,7 +227,7 @@ func energyByLocation(locations []string) ([]TopStats, error) {
 		stats.BatteryInstantPower = int(battery)
 		stats.SiteInstantPower = int(site)
 		stats.SolarInstantPower = int(solar)
-		stats.BatteryCharge = pct
+		stats.BatteryChargeAsOf = stats.BatteryChargeAsOf.In(timeLoc)
 
 		// Battery percent history
 		battHistory, err := getPct(location)

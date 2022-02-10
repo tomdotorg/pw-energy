@@ -7,6 +7,7 @@ import (
 	"html/template"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -184,8 +185,8 @@ func dbConnect() {
 }
 
 // energyByLocation queries for the current information for a site.
-func energyByLocation(locations []string) ([]TopStats, error) {
-	var allStats []TopStats = make([]TopStats, 0)
+func energyByLocation(locations []string, limit int) ([]TopStats, error) {
+	var allStats = make([]TopStats, 0)
 
 	for _, location := range locations {
 		var (
@@ -229,14 +230,14 @@ func energyByLocation(locations []string) ([]TopStats, error) {
 		stats.BatteryChargeAsOf = stats.BatteryChargeAsOf.In(timeLoc)
 
 		// Battery percent history
-		battHistory, err := getPct(location, 14)
+		battHistory, err := getPct(location, limit)
 		if err != nil {
 			log.Error().Err(err).Msg("getPct()")
 		}
 		stats.PctHistory = battHistory
 
 		// Stats history
-		statsHistory, err := getStats(location, 14)
+		statsHistory, err := getStats(location, limit)
 		if err != nil {
 			log.Error().Err(err).Msg("getPct()")
 		}
@@ -292,7 +293,23 @@ func energyHandler(w http.ResponseWriter, r *http.Request) {
 		locations = []string{keys[0]}
 	}
 
-	stats, err := energyByLocation(locations)
+	const defaultLimit = 14
+	var limit int
+
+	limits, ok := r.URL.Query()["limit"]
+	if !ok || len(limits[0]) < 1 {
+		limit = defaultLimit
+	} else {
+		l, err := strconv.Atoi(limits[0])
+		if err != nil {
+			log.Warn().Msgf("limit [%s] not an integer - using 14", keys[0])
+			limit = defaultLimit
+		} else {
+			limit = l
+		}
+	}
+
+	stats, err := energyByLocation(locations, limit)
 	if err != nil {
 		s := fmt.Sprintf("%+v", err)
 		http.Error(w, s, http.StatusInternalServerError)

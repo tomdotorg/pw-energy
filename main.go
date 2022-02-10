@@ -2,13 +2,11 @@ package main
 
 import (
 	"database/sql"
-	"errors"
 	"flag"
 	"fmt"
 	"html/template"
 	"net/http"
 	"os"
-	"runtime/debug"
 	"strings"
 	"time"
 
@@ -18,7 +16,7 @@ import (
 	"github.com/rs/zerolog/pkgerrors"
 )
 
-var db *sql.DB
+var db *sql.DB = nil
 
 // templateData provides template parameters.
 type templateData struct {
@@ -44,6 +42,7 @@ type TopStats struct {
 	BatteryCharge       float64
 	BatteryChargeAsOf   time.Time
 	QueryTime           time.Duration
+	BatteryHistory      []PctDisplayRecord
 	PctHistory          []DayBatteryPctDisplayRecord
 	StatsHistory        []StatsDisplayRecord
 }
@@ -75,6 +74,7 @@ type StatsDisplayRecord struct {
 	LowSiteDT           string
 	SiteImported        float64
 	SiteExported        float64
+	SiteNet             float64
 	NumSiteSamples      int
 	TotalSiteSamples    float64
 	SiteAvg             float64
@@ -86,6 +86,7 @@ type StatsDisplayRecord struct {
 	LowLoadDT           string
 	LoadImported        float64
 	LoadExported        float64
+	LoadNet             float64
 	NumLoadSamples      int
 	TotalLoadSamples    float64
 	LoadAvg             float64
@@ -97,6 +98,7 @@ type StatsDisplayRecord struct {
 	LowBatteryDT        string
 	BatteryImported     float64
 	BatteryExported     float64
+	BatteryNet          float64
 	NumBatterySamples   int
 	TotalBatterySamples float64
 	BatteryAvg          float64
@@ -108,6 +110,7 @@ type StatsDisplayRecord struct {
 	LowSolarDT          string
 	SolarImported       float64
 	SolarExported       float64
+	SolarNet            float64
 	NumSolarSamples     int
 	TotalSolarSamples   float64
 	SolarAvg            float64
@@ -147,12 +150,7 @@ func init() {
 
 	if *debugFlag {
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
-		err := errors.New("some error")
-		stack := string(debug.Stack())
-		log.Debug().Msg(stack)
-		// debug.PrintStack()
-		log.Error().Stack().Err(err).Msg("enabling debugFlag level logging")
-		log.Warn().Str("foo", string(3)).Msg("this is a warning")
+		log.Info().Msg("enabling level logging")
 	} else {
 		log.Info().Msg("info level logging enabled")
 	}
@@ -198,12 +196,13 @@ func energyByLocation(locations []string) ([]TopStats, error) {
 		)
 		start := time.Now()
 		var stats TopStats
-		topic := "energy/" + location + "/energy"
+		topic := "energy/" + strings.ToLower(location) + "/energy"
 		row := db.QueryRow("SELECT dt asof, payload->>'$.load.instant_power' ld, payload->>'$.battery.instant_power' battery, payload->>'$.site.instant_power' site, payload->>'$.solar.instant_power' solar FROM energy where topic = ? order by asOf desc limit 1;", topic)
 
 		if err := row.Scan(&stats.AsOf, &load, &battery, &site, &solar); err != nil {
 			if err == sql.ErrNoRows {
-				return allStats, fmt.Errorf("topic %s: no last row", topic)
+				continue
+				// return nil, fmt.Errorf("topic %s: no last row", topic)
 			}
 			s := fmt.Sprintf("%+v", err)
 			return allStats, fmt.Errorf("energyByLocation() %s", s)
@@ -230,14 +229,14 @@ func energyByLocation(locations []string) ([]TopStats, error) {
 		stats.BatteryChargeAsOf = stats.BatteryChargeAsOf.In(timeLoc)
 
 		// Battery percent history
-		battHistory, err := getPct(location)
+		battHistory, err := getPct(location, 14)
 		if err != nil {
 			log.Error().Err(err).Msg("getPct()")
 		}
 		stats.PctHistory = battHistory
 
 		// Stats history
-		statsHistory, err := getStats(location)
+		statsHistory, err := getStats(location, 14)
 		if err != nil {
 			log.Error().Err(err).Msg("getPct()")
 		}
@@ -287,8 +286,8 @@ func energyHandler(w http.ResponseWriter, r *http.Request) {
 	var locations []string
 	keys, ok := r.URL.Query()["location"]
 	if !ok || len(keys[0]) < 1 {
-		log.Info().Msg("Url Param 'location' is missing")
-		locations = []string{"MA", "VT"}
+		locations = []string{"MA", "VT", "WHALES"}
+		// locations = []string{"MA", "VT", "WHALES"}
 	} else {
 		locations = []string{keys[0]}
 	}
@@ -315,7 +314,7 @@ func helloRunHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func getStats(location string) ([]StatsDisplayRecord, error) {
+func getStats(location string, limit int) ([]StatsDisplayRecord, error) {
 	rows, err := db.Query(`select location, datetime,
        hi_site, hi_site_dt, low_site, low_site_dt, site_energy_imported, site_energy_exported, num_site_samples, total_site_samples,
 		   hi_load, hi_load_dt, low_load, low_load_dt, load_energy_imported, load_energy_exported, num_load_samples, total_load_samples,
@@ -334,7 +333,7 @@ func getStats(location string) ([]StatsDisplayRecord, error) {
 	}(rows)
 	recs := make([]StatsDisplayRecord, 0)
 
-	for rows.Next() {
+	for i := 0; i < limit && rows.Next(); i++ {
 		var dbStats StatsDisplayRecord
 		err = rows.Scan(&dbStats.Location, &dbStats.DateTime,
 			&dbStats.HiSite, &dbStats.HiSiteTime, &dbStats.LowSite, &dbStats.LowSiteTime, &dbStats.SiteImported, &dbStats.SiteExported, &dbStats.NumSiteSamples, &dbStats.TotalSiteSamples,
@@ -363,7 +362,7 @@ func getStats(location string) ([]StatsDisplayRecord, error) {
 	return recs, nil
 }
 
-func getPct(location string) ([]DayBatteryPctDisplayRecord, error) {
+func getPct(location string, limit int) ([]DayBatteryPctDisplayRecord, error) {
 	rows, err := db.Query(
 		"select location, datetime, hi_pct, hi_pct_dt, low_pct, low_pct_dt, "+
 			"num_samples, total_samples from day_battery_pct where location = ? order by datetime desc",
@@ -380,7 +379,7 @@ func getPct(location string) ([]DayBatteryPctDisplayRecord, error) {
 		}
 	}(rows)
 	recs := make([]DayBatteryPctDisplayRecord, 0)
-	for rows.Next() {
+	for i := 0; i < limit && rows.Next(); i++ {
 		var pctRecord DayBatteryPctDisplayRecord
 		err = rows.Scan(&pctRecord.Location, &pctRecord.DateTime, &pctRecord.HiPct, &pctRecord.HiPctTime, &pctRecord.LowPct, &pctRecord.LowPctTime, &pctRecord.NumSamples, &pctRecord.TotalSamples)
 		if err != nil {

@@ -298,7 +298,7 @@ func energyHandler(w http.ResponseWriter, r *http.Request) {
 		locations = []string{keys[0]}
 	}
 
-	const defaultLimit = 14
+	const defaultLimit = 2
 	var limit int
 
 	limits, ok := r.URL.Query()["limit"]

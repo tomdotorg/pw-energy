@@ -34,23 +34,19 @@
       <tr>
         <td><b>Day</b></td>
         <td><b>Batt Hi</b></td>
-        <td><b>HighTime</b></td>
         <td><b>Batt Low</b></td>
-        <td><b>LowTime</b></td>
-        <td><b>Batt Samples</b></td>
         <td><b>Total</b></td>
         <td><b>Batt Avg</b></td>
+        <td><b>Samples</b></td>
       </tr>
       {{ range .PctHistory}}
         <tr>
           <td>{{ .DT }}</td>
-          <td>{{ printf "%.2f" .HiPct}}</td>
-          <td>{{ .HiDT}}</td>
-          <td>{{ printf "%.2f" .LowPct}}</td>
-          <td>{{ .LowDT}}</td>
-          <td>{{ printf "%d" .NumSamples}}</td>
+          <td>{{ printf "%.2f" .HiPct}} ({{ .HiDT}})</td>
+          <td>{{ printf "%.2f" .LowPct}} ({{ .LowDT}})</td>
           <td>{{ printf "%.0f" .TotalSamples}}</td>
           <td>{{ printf "%.2f" .AvgPct}}</td>
+          <td>{{ printf "%d" .NumSamples}}</td>
         </tr>
       {{end}}
 

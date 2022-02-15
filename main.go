@@ -173,15 +173,21 @@ func dbConnect() {
 	// log.Print(dbURI)
 	// dbPool is the pool of database connections.
 	var err error
-	db, err = sql.Open("mysql", dbURI)
-	if err != nil {
-		log.Fatal().Err(err).Msg("sql.Open()")
+	const retries = 5
+	for i := 0; i < retries; i++ {
+		db, err = sql.Open("mysql", dbURI)
+		if err != nil {
+			log.Fatal().Err(err).Msg("sql.Open()")
+		}
+		pingErr := db.Ping()
+		if pingErr != nil {
+			log.Error().Err(pingErr).Stack().Msgf("pinging db - try #%d", i)
+		} else {
+			log.Print("Connected!")
+			return
+		}
 	}
-	pingErr := db.Ping()
-	if pingErr != nil {
-		log.Fatal().Err(pingErr).Stack().Msg("pinging db")
-	}
-	log.Print("Connected!")
+	log.Fatal().Err(err).Msgf("Could not connect to database: %s", err)
 }
 
 // energyByLocation queries for the current information for a site.
@@ -242,7 +248,6 @@ func energyByLocation(locations []string, limit int) ([]TopStats, error) {
 			log.Error().Err(err).Msg("getPct()")
 		}
 		stats.StatsHistory = statsHistory
-		// log.Debug().Msgf("statsHistory: %+v", statsHistory)
 		stats.QueryTime = time.Since(start)
 		allStats = append(allStats, stats)
 	}

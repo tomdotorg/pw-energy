@@ -174,6 +174,13 @@ func dbConnect() {
 	// dbPool is the pool of database connections.
 	var err error
 	const retries = 5
+	if db != nil {
+		pingErr := db.Ping()
+		if pingErr == nil {
+			log.Print("Already connected.")
+			return
+		}
+	}
 	for i := 0; i < retries; i++ {
 		db, err = sql.Open("mysql", dbURI)
 		if err != nil {
@@ -194,6 +201,7 @@ func dbConnect() {
 func energyByLocation(locations []string, limit int) ([]TopStats, error) {
 	var allStats = make([]TopStats, 0)
 
+	dbConnect()
 	for _, location := range locations {
 		var (
 			load    float64

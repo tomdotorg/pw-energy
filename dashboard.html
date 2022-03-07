@@ -1,105 +1,171 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+  <script src="https://code.highcharts.com/highcharts.js"></script>
+  <script src="https://code.highcharts.com/modules/boost.js"></script>
+  <script src="https://code.highcharts.com/modules/exporting.js"></script>
+  <!-- optional -->
+  <script src="https://code.highcharts.com/modules/offline-exporting.js"></script>
+  <script src="https://code.highcharts.com/modules/export-data.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.18.1/moment.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.13/moment-timezone-with-data-2012-2022.min.js"></script>
   <meta charset="UTF-8">
   <title>Energy Dashboard</title>
-  <meta http-equiv="refresh" content="60">
+  <!-- <meta http-equiv="refresh" content="60"> -->
 </head>
 <body>
 <table border="1">
-    {{ range .}}
-      <tr>
-        <td><b>Location</b></td>
-        <td><b>As Of</b></td>
-        <td><b>Grid</b></td>
-        <td><b>Home</b></td>
-        <td><b>Solar</b></td>
-        <td><b>Battery</b></td>
-        <td><b>Battery Charge</b></td>
-        <td><b>BattAsOf</b></td>
-        <td><b>Response Time</b></td>
-      </tr>
-      <tr>
-        <td>{{.Location}}</td>
-        <td>{{ .AsOf.Format "02 Jan 06 15:04:05 MST" }}</td>
-        <td>{{ .SiteInstantPower}}</td>
-        <td>{{ .LoadInstantPower}}</td>
-        <td>{{ .SolarInstantPower}}</td>
-        <td>{{ .BatteryInstantPower}}</td>
-        <td>{{ printf "%.2f" .BatteryCharge}}</td>
-        <td>{{ .BatteryChargeAsOf.Format "02 Jan 06 15:04:05 MST" }}</td>
-        <td>{{ .QueryTime}}</td>
-      </tr>
+  <tr>
+    <td><b>Location</b></td>
+    <td><b>As Of</b></td>
+    <td><b>Grid</b></td>
+    <td><b>Home</b></td>
+    <td><b>Solar</b></td>
+    <td><b>Battery</b></td>
+    <td><b>Battery Charge</b></td>
+    <td><b>BattAsOf</b></td>
+    <td><b>Response Time</b></td>
+  </tr>
+  <tr>
+    <td>{{ .Location}}</td>
+    <td>{{ .AsOf.Format "02 Jan 06 15:04:05 MST" }}</td>
+    <td>{{ .SiteInstantPower}}</td>
+    <td>{{ .LoadInstantPower}}</td>
+    <td>{{ .SolarInstantPower}}</td>
+    <td>{{ .BatteryInstantPower}}</td>
+    <td>{{ printf "%.2f" .BatteryCharge}}</td>
+    <td>{{ .BatteryChargeAsOf.Format "02 Jan 06 15:04:05 MST" }}</td>
+    <td>{{ .QueryTime}}</td>
+  </tr>
 
+  <tr>
+    <td><b>Day</b></td>
+    <td><b>Batt Hi</b></td>
+    <td><b>Batt Low</b></td>
+    <td><b>Total</b></td>
+    <td><b>Batt Avg</b></td>
+    <td><b>Samples</b></td>
+  </tr>
+    {{ range .PctHistory}}
       <tr>
-        <td><b>Day</b></td>
-        <td><b>Batt Hi</b></td>
-        <td><b>Batt Low</b></td>
-        <td><b>Total</b></td>
-        <td><b>Batt Avg</b></td>
-        <td><b>Samples</b></td>
+        <td>{{ .DT }}</td>
+        <td>{{ printf "%.2f" .HiPct}} ({{ .HiDT}})</td>
+        <td>{{ printf "%.2f" .LowPct}} ({{ .LowDT}})</td>
+        <td>{{ printf "%.0f" .TotalSamples}}</td>
+        <td>{{ printf "%.2f" .AvgPct}}</td>
+        <td>{{ printf "%d" .NumSamples}}</td>
       </tr>
-      {{ range .PctHistory}}
-        <tr>
-          <td>{{ .DT }}</td>
-          <td>{{ printf "%.2f" .HiPct}} ({{ .HiDT}})</td>
-          <td>{{ printf "%.2f" .LowPct}} ({{ .LowDT}})</td>
-          <td>{{ printf "%.0f" .TotalSamples}}</td>
-          <td>{{ printf "%.2f" .AvgPct}}</td>
-          <td>{{ printf "%d" .NumSamples}}</td>
-        </tr>
-      {{end}}
-
-      <tr>
-        <td><b>Day</b></td>
-        <td><b>Grid Hi</b></td>
-        <td><b>Grid Low</b></td>
-        <td><b>From Grid</b></td>
-        <td><b>To Grid</b></td>
-        <td><b>Grid Avg</b></td>
-        <td><b>Load Hi</b></td>
-        <td><b>Load Low</b></td>
-        <td><b>Load Tot</b></td>
-        <td><b>Load Avg</b></td>
-        <td><b>Solar Hi</b></td>
-        <td><b>Solar Tot</b></td>
-        <td><b>Solar Avg</b></td>
-        <td><b>Batt Hi</b></td>
-        <td><b>Batt Low</b></td>
-        <td><b>From Batt</b></td>
-        <td><b>To Batt</b></td>
-        <td><b>Batt Avg</b></td>
-        <td><b>Samples</b></td>
-      </tr>
-      {{ range .StatsHistory}}
-        <tr>
-          <td>{{ .DT }}</td>
-          <td>{{ printf "%.0f" .HiSite}} ({{ .HiSiteDT}})</td>
-          <td>{{ printf "%.0f" .LowSite}} ({{ .LowSiteDT }})</td>
-          <td>{{ printf "%.2f" .SiteImported }}</td>
-          <td>{{ printf "%.2f" .SiteExported }}</td>
-          <td>{{ printf "%.2f" .SiteAvg}}</td>
-          <td>{{ printf "%.2f" .HiLoad}} ({{ .HiLoadDT}})</td>
-          <td>{{ printf "%.2f" .LowLoad}} ({{ .LowLoadDT}})</td>
-          <td>{{ printf "%.2f" .LoadImported }}</td>
-          <td>{{ printf "%.2f" .LoadAvg}}</td>
-          <td>{{ printf "%.0f" .HiSolar}} ({{ .HiSolarDT}})</td>
-          <td>{{ printf "%.2f" .SolarExported }}</td>
-          <td>{{ printf "%.2f" .SolarAvg}}</td>
-          <td>{{ printf "%.0f" .HiBattery}} ({{ .HiBatteryDT}})</td>
-          <td>{{ printf "%.0f" .LowBattery}} ({{ .LowBatteryDT}})</td>
-          <td>{{ printf "%.2f" .BatteryImported }}</td>
-          <td>{{ printf "%.2f" .BatteryExported }}</td>
-          <td>{{ printf "%.2f" .BatteryAvg}}</td>
-          <td>{{ printf "%d" .NumBatterySamples }}</td>
-        </tr>
-      {{end}}
-      <tr></tr>
-      <tr></tr>
-      <tr></tr>
-
     {{end}}
+
+  <tr>
+    <td><b>Day</b></td>
+    <td><b>Grid Hi</b></td>
+    <td><b>Grid Low</b></td>
+    <td><b>From Grid</b></td>
+    <td><b>To Grid</b></td>
+    <td><b>Grid Avg</b></td>
+    <td><b>Load Hi</b></td>
+    <td><b>Load Low</b></td>
+    <td><b>Load Tot</b></td>
+    <td><b>Load Avg</b></td>
+    <td><b>Solar Hi</b></td>
+    <td><b>Solar Tot</b></td>
+    <td><b>Solar Avg</b></td>
+    <td><b>Batt Hi</b></td>
+    <td><b>Batt Low</b></td>
+    <td><b>From Batt</b></td>
+    <td><b>To Batt</b></td>
+    <td><b>Batt Avg</b></td>
+    <td><b>Samples</b></td>
+  </tr>
+    {{ range .StatsHistory}}
+      <tr>
+        <td>{{ .DT }}</td>
+        <td>{{ printf "%.0f" .HiSite}} ({{ .HiSiteDT}})</td>
+        <td>{{ printf "%.0f" .LowSite}} ({{ .LowSiteDT }})</td>
+        <td>{{ printf "%.2f" .SiteImported }}</td>
+        <td>{{ printf "%.2f" .SiteExported }}</td>
+        <td>{{ printf "%.2f" .SiteAvg}}</td>
+        <td>{{ printf "%.2f" .HiLoad}} ({{ .HiLoadDT}})</td>
+        <td>{{ printf "%.2f" .LowLoad}} ({{ .LowLoadDT}})</td>
+        <td>{{ printf "%.2f" .LoadImported }}</td>
+        <td>{{ printf "%.2f" .LoadAvg}}</td>
+        <td>{{ printf "%.0f" .HiSolar}} ({{ .HiSolarDT}})</td>
+        <td>{{ printf "%.2f" .SolarExported }}</td>
+        <td>{{ printf "%.2f" .SolarAvg}}</td>
+        <td>{{ printf "%.0f" .HiBattery}} ({{ .HiBatteryDT}})</td>
+        <td>{{ printf "%.0f" .LowBattery}} ({{ .LowBatteryDT}})</td>
+        <td>{{ printf "%.2f" .BatteryImported }}</td>
+        <td>{{ printf "%.2f" .BatteryExported }}</td>
+        <td>{{ printf "%.2f" .BatteryAvg}}</td>
+        <td>{{ printf "%d" .NumBatterySamples }}</td>
+      </tr>
+    {{end}}
+  <tr></tr>
+  <tr></tr>
+  <tr></tr>
 </table>
+
+<div id="container" style="width: 550px; height: 400px; margin: 0 auto"></div>
+<script language="JavaScript">
+    Highcharts.setOptions({
+        time: {
+            timezone: 'America/New_York'
+        }
+    });
+    $(document).ready(function () {
+        var chart = {
+            type: 'spline'
+        };
+        var title = {
+            text: ' Recent Production/Consumption'
+        };
+        var subtitle = {
+            text: 'Irregular time data in Highcharts JS'
+        };
+        var xAxis = {
+            type: 'datetime',
+            title: {
+                text: 'Date'
+            }
+        };
+        var yAxis = {
+            title: {
+                text: 'w'
+            },
+            min: 0
+        };
+        var tooltip = {
+            headerFormat: '<b>{series.name}</b><br>',
+            pointFormat: '{point.x:%H:%M}: {point.y:.2f}w'
+        };
+        var plotOptions = {
+            useUTC: false
+        };
+        var series = [
+            {
+                name: 'Production',
+                data: {{ .ProducedGraphData }}
+            },
+            {
+                name: 'Consumption',
+                data: {{ .ConsumedGraphData }}
+            }
+        ];
+
+        var json = {};
+        json.chart = chart;
+        json.title = title;
+        json.subtitle = subtitle;
+        json.tooltip = tooltip;
+        json.xAxis = xAxis;
+        json.yAxis = yAxis;
+        json.series = series;
+        json.plotOptions = plotOptions;
+        $('#container').highcharts(json);
+    });
+</script>
 
 </body>
 </html>

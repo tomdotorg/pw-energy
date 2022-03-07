@@ -357,7 +357,7 @@ func energyHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, s, http.StatusInternalServerError)
 	}
 
-	fiveMinStatRecs, err := getFiveMinStats(location, time.Now().Local().AddDate(0, 0, -1).Unix(), time.Now().Local().Unix())
+	fiveMinStatRecs, err := getFiveMinStats(location, time.Now().Local().AddDate(0, 0, -2).Unix(), time.Now().Local().Unix())
 	if err != nil {
 		log.Error().Err(err).Msg("energyByLocation()")
 	}

@@ -47,7 +47,7 @@
     <td><b>Batt Avg</b></td>
     <td><b>Samples</b></td>
   </tr>
-    {{ range .PctHistory}}
+    {{ range .DayBatteryHistory}}
       <tr>
         <td>{{ .DT }}</td>
         <td>{{ printf "%.2f" .HiPct}} ({{ .HiDT}})</td>
@@ -164,6 +164,62 @@
         json.series = series;
         json.plotOptions = plotOptions;
         $('#container').highcharts(json);
+    });
+</script>
+
+<div id="container2" style="width: 550px; height: 400px; margin: 0 auto"></div>
+<script language="JavaScript">
+    Highcharts.setOptions({
+        time: {
+            timezone: 'America/New_York'
+        }
+    });
+    $(document).ready(function () {
+        var chart = {
+            type: 'spline'
+        };
+        var title = {
+            text: 'Battery Level'
+        };
+        var subtitle = {
+            text: '% of Capacity'
+        };
+        var xAxis = {
+            type: 'datetime',
+            title: {
+                text: 'Date'
+            }
+        };
+        var yAxis = {
+            title: {
+                text: '%'
+            },
+            min: 0
+        };
+        var tooltip = {
+            headerFormat: '<b>{series.name}</b><br>',
+            pointFormat: '{point.x:%H:%M}: {point.y:.2f}%'
+        };
+        var plotOptions = {
+            useUTC: false
+        };
+        var series = [
+            {
+                name: 'Level',
+                data: {{ .BatteryGraphData }}
+            },
+        ];
+
+        var json = {};
+        json.chart = chart;
+        json.title = title;
+        json.subtitle = subtitle;
+        json.tooltip = tooltip;
+        json.xAxis = xAxis;
+        json.yAxis = yAxis;
+        json.series = series;
+        json.plotOptions = plotOptions;
+        $('#container2').highcharts(json);
     });
 </script>
 

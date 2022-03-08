@@ -36,24 +36,25 @@ type PctDisplayRecord struct {
 }
 
 type TopStats struct {
-	Location            string
-	AsOf                time.Time
-	SiteInstantPower    int
-	LoadInstantPower    int
-	BatteryInstantPower int
-	SolarInstantPower   int
-	BatteryCharge       float64
-	BatteryChargeAsOf   time.Time
-	QueryTime           time.Duration
-	BatteryHistory      []PctDisplayRecord
-	PctHistory          []DayBatteryPctDisplayRecord
-	StatsHistory        []StatsDisplayRecord
-	EnergyHistory       []StatsDisplayRecord
-	ConsumedGraphData   string
-	ProducedGraphData   string
+	Location              string
+	AsOf                  time.Time
+	SiteInstantPower      int
+	LoadInstantPower      int
+	BatteryInstantPower   int
+	SolarInstantPower     int
+	BatteryCharge         float64
+	BatteryChargeAsOf     time.Time
+	QueryTime             time.Duration
+	DayBatteryHistory     []BatteryPctDisplayRecord
+	FiveMinBatteryHistory []BatteryPctDisplayRecord
+	StatsHistory          []StatsDisplayRecord
+	EnergyHistory         []StatsDisplayRecord
+	ConsumedGraphData     string
+	ProducedGraphData     string
+	BatteryGraphData      string
 }
 
-type DayBatteryPctDisplayRecord struct {
+type BatteryPctDisplayRecord struct {
 	Location     string
 	DateTime     int64
 	DT           string
@@ -207,7 +208,7 @@ func dbConnect() {
 	log.Fatal().Err(err).Msgf("Could not connect to database: %s", err)
 }
 
-func chartData(in []StatsDisplayRecord) (prod string, cons string) {
+func statsChartData(in []StatsDisplayRecord) (prod string, cons string) {
 	prod = "["
 	cons = "["
 	for _, v := range in {
@@ -218,26 +219,27 @@ func chartData(in []StatsDisplayRecord) (prod string, cons string) {
 	prod = prod[:len(prod)-1] + "]"
 	cons = cons[:len(cons)-1] + "]"
 
-	//	log.Debug().Msgf("prod: %s", prod)
-	//	log.Debug().Msgf("cons: %s", cons)
 	return prod, cons
+}
+
+func batteryChartData(in []BatteryPctDisplayRecord) (pct string) {
+	pct = "["
+	for _, v := range in {
+		dt := v.DateTime * 1000
+		pct += fmt.Sprintf("[%d,%f],", dt, v.AvgPct)
+	}
+	pct = pct[:len(pct)-1] + "]"
+	return pct
 }
 
 // statsByLocation queries for the summary information for a site.
 func statsByLocation(location string, limit int) (TopStats, error) {
 	log.Debug().Msgf("statsByLocation(%s, %d)", location, limit)
-
 	dbConnect()
-	var (
-		load    float64
-		battery float64
-		site    float64
-		solar   float64
-	)
 	start := time.Now()
 	var stats TopStats
 	row := db.QueryRow("SELECT dt asof, payload->>'$.load.instant_power' ld, payload->>'$.battery.instant_power' battery, payload->>'$.site.instant_power' site, payload->>'$.solar.instant_power' solar FROM energy where location = ? order by asOf desc limit 1;", location)
-
+	var load, battery, site, solar float64
 	if err := row.Scan(&stats.AsOf, &load, &battery, &site, &solar); err != nil {
 		if err == sql.ErrNoRows {
 			log.Error().Err(err).Msg("No rows returned")
@@ -246,9 +248,7 @@ func statsByLocation(location string, limit int) (TopStats, error) {
 		log.Error().Err(err).Msg("No rows returned")
 		return stats, err
 	}
-
 	row = db.QueryRow("SELECT dt asof, percent_charged FROM battery where location = ? order by asOf desc limit 1;", location)
-
 	if err := row.Scan(&stats.BatteryChargeAsOf, &stats.BatteryCharge); err != nil {
 		if err == sql.ErrNoRows {
 			log.Error().Err(err).Msg("no battery charge data")
@@ -272,7 +272,7 @@ func statsByLocation(location string, limit int) (TopStats, error) {
 	if err != nil {
 		log.Error().Err(err).Msg("getDayBatteryPct()")
 	}
-	stats.PctHistory = battHistory
+	stats.DayBatteryHistory = battHistory
 
 	// Stats history
 	statsHistory, err := getDayStats(location, limit)
@@ -280,12 +280,6 @@ func statsByLocation(location string, limit int) (TopStats, error) {
 		log.Error().Err(err).Msg("getDayBatteryPct()")
 	}
 	stats.StatsHistory = statsHistory
-
-	// energyHistory, err := energyByLocation(location, time.Now().Add(-24*time.Hour))
-	// if err != nil {
-	// 	log.Error().Err(err).Msg("energyByLocation()")
-	// }
-	// stats.EnergyHistory = energyHistory
 
 	stats.QueryTime = time.Since(start)
 	return stats, nil
@@ -359,10 +353,17 @@ func energyHandler(w http.ResponseWriter, r *http.Request) {
 
 	fiveMinStatRecs, err := getFiveMinStats(location, time.Now().Local().AddDate(0, 0, -2).Unix(), time.Now().Local().Unix())
 	if err != nil {
-		log.Error().Err(err).Msg("energyByLocation()")
+		log.Error().Err(err).Msg("getFiveMinStats()")
 	}
 	stats.EnergyHistory = fiveMinStatRecs
-	stats.ProducedGraphData, stats.ConsumedGraphData = chartData(fiveMinStatRecs)
+	stats.ProducedGraphData, stats.ConsumedGraphData = statsChartData(fiveMinStatRecs)
+
+	fiveMinBatteryRecs, err := getFiveMinBattery(location, time.Now().Local().AddDate(0, 0, -2).Unix(), time.Now().Local().Unix())
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("getFiveMinBattery()")
+	}
+	stats.FiveMinBatteryHistory = fiveMinBatteryRecs
+	stats.BatteryGraphData = batteryChartData(fiveMinBatteryRecs)
 
 	if err := dashboardTmpl.Execute(w, stats); err != nil {
 		msg := http.StatusText(http.StatusInternalServerError)
@@ -480,14 +481,14 @@ func getFiveMinStats(location string, beginDate int64, endDate int64) ([]StatsDi
 	return recs, nil
 }
 
-func getDayBatteryPct(location string, limit int) ([]DayBatteryPctDisplayRecord, error) {
-	log.Debug().Msgf("getDayBatteryPct(%s, %d)", location, limit)
+func getFiveMinBattery(location string, beginDate int64, endDate int64) ([]BatteryPctDisplayRecord, error) {
+	log.Debug().Msgf("getFiveMinBattery(%s, %d, %d)", location, beginDate, endDate)
 	rows, err := db.Query(
 		"select location, datetime, hi_pct, hi_pct_dt, low_pct, low_pct_dt, "+
-			"num_samples, total_samples from day_battery_pct where location = ? order by datetime desc",
+			"num_samples, total_samples from five_min_battery_pct where location = ? order by datetime desc",
 		location)
 	if err != nil {
-		log.Error().Err(err).Stack().Msg("error querying for update")
+		log.Error().Err(err).Stack().Msg("error querying db")
 		return nil, err
 	}
 	defer func(rows *sql.Rows) {
@@ -496,9 +497,43 @@ func getDayBatteryPct(location string, limit int) ([]DayBatteryPctDisplayRecord,
 			log.Error().Err(err).Stack().Msg("error closing rows")
 		}
 	}(rows)
-	recs := make([]DayBatteryPctDisplayRecord, 0)
+	recs := make([]BatteryPctDisplayRecord, 0)
+	for rows.Next() {
+		var pctRecord BatteryPctDisplayRecord
+		err = rows.Scan(&pctRecord.Location, &pctRecord.DateTime, &pctRecord.HiPct, &pctRecord.HiPctTime, &pctRecord.LowPct, &pctRecord.LowPctTime, &pctRecord.NumSamples, &pctRecord.TotalSamples)
+		if err != nil {
+			log.Error().Err(err).Stack().Msg("error getting day pct summaries")
+			return recs, err
+		}
+		pctRecord.DT = time.Unix(pctRecord.DateTime, 0).Format("2006-01-02")
+		pctRecord.LowDT = time.Unix(pctRecord.LowPctTime, 0).Format("15:04")
+		pctRecord.HiDT = time.Unix(pctRecord.HiPctTime, 0).Format("15:04")
+		pctRecord.AvgPct = pctRecord.TotalSamples / float64(pctRecord.NumSamples)
+		recs = append(recs, pctRecord)
+	}
+	log.Debug().Msgf("end getFiveMinBattery(%s, %d, %d)", location, beginDate, endDate)
+	return recs, nil
+}
+
+func getDayBatteryPct(location string, limit int) ([]BatteryPctDisplayRecord, error) {
+	log.Debug().Msgf("getDayBatteryPct(%s, %d)", location, limit)
+	rows, err := db.Query(
+		"select location, datetime, hi_pct, hi_pct_dt, low_pct, low_pct_dt, "+
+			"num_samples, total_samples from day_battery_pct where location = ? order by datetime desc",
+		location)
+	if err != nil {
+		log.Error().Err(err).Stack().Msg("error querying db")
+		return nil, err
+	}
+	defer func(rows *sql.Rows) {
+		err := rows.Close()
+		if err != nil {
+			log.Error().Err(err).Stack().Msg("error closing rows")
+		}
+	}(rows)
+	recs := make([]BatteryPctDisplayRecord, 0)
 	for i := 0; i < limit && rows.Next(); i++ {
-		var pctRecord DayBatteryPctDisplayRecord
+		var pctRecord BatteryPctDisplayRecord
 		err = rows.Scan(&pctRecord.Location, &pctRecord.DateTime, &pctRecord.HiPct, &pctRecord.HiPctTime, &pctRecord.LowPct, &pctRecord.LowPctTime, &pctRecord.NumSamples, &pctRecord.TotalSamples)
 		if err != nil {
 			log.Error().Err(err).Stack().Msg("error getting day pct summaries")

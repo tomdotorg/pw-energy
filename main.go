@@ -351,14 +351,16 @@ func energyHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, s, http.StatusInternalServerError)
 	}
 
-	fiveMinStatRecs, err := getFiveMinStats(location, time.Now().Local().AddDate(-1, 0, 0).Unix(), time.Now().Local().Unix())
+	beginDate := time.Now().Local().AddDate(-1, 0, 0).Unix()
+	endDate := time.Now().Local().Unix()
+	fiveMinStatRecs, err := getFiveMinStats(location, beginDate, endDate)
 	if err != nil {
 		log.Error().Err(err).Msg("getFiveMinStats()")
 	}
 	stats.EnergyHistory = fiveMinStatRecs
 	stats.ProducedGraphData, stats.ConsumedGraphData = statsChartData(fiveMinStatRecs)
 
-	fiveMinBatteryRecs, err := getFiveMinBattery(location, time.Now().Local().AddDate(-1, 0, 0).Unix(), time.Now().Local().Unix())
+	fiveMinBatteryRecs, err := getFiveMinBattery(location, beginDate, endDate)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("getFiveMinBattery()")
 	}
@@ -482,11 +484,10 @@ func getFiveMinStats(location string, beginDate int64, endDate int64) ([]StatsDi
 }
 
 func getFiveMinBattery(location string, beginDate int64, endDate int64) ([]BatteryPctDisplayRecord, error) {
-	log.Debug().Msgf("getFiveMinBattery(%s, %d, %d)", location, beginDate, endDate)
-	rows, err := db.Query(
-		"select location, datetime, hi_pct, hi_pct_dt, low_pct, low_pct_dt, "+
-			"num_samples, total_samples from five_min_battery_pct where location = ? order by datetime desc",
-		location)
+	log.Debug().Msgf("getFiveMinBattery(%s, %+v, %+v)", location, time.Unix(beginDate, 0).String(), time.Unix(endDate, 0).String())
+	rows, err := db.Query("select location, datetime, hi_pct, hi_pct_dt, low_pct, low_pct_dt, "+
+		"num_samples, total_samples from five_min_battery_pct where location = ? "+
+		"and datetime >= ? and datetime <= ? order by datetime", location, beginDate, endDate)
 	if err != nil {
 		log.Error().Err(err).Stack().Msg("error querying db")
 		return nil, err
@@ -509,9 +510,10 @@ func getFiveMinBattery(location string, beginDate int64, endDate int64) ([]Batte
 		pctRecord.LowDT = time.Unix(pctRecord.LowPctTime, 0).Format("15:04")
 		pctRecord.HiDT = time.Unix(pctRecord.HiPctTime, 0).Format("15:04")
 		pctRecord.AvgPct = pctRecord.TotalSamples / float64(pctRecord.NumSamples)
+		//		log.Debug().Msgf("pctRecord: %+v", pctRecord)
 		recs = append(recs, pctRecord)
 	}
-	log.Debug().Msgf("end getFiveMinBattery(%s, %d, %d)", location, beginDate, endDate)
+	log.Debug().Msgf("end getFiveMinBattery() returning %d records", len(recs))
 	return recs, nil
 }
 

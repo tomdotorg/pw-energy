@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+
   <script src="https://code.highcharts.com/indicators/indicators-all.js"></script>
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
   <script src="https://code.highcharts.com/highcharts.js"></script>
@@ -19,6 +20,14 @@
   <meta charset="UTF-8">
   <title>Energy Dashboard</title>
   <meta http-equiv="refresh" content="60">
+  <script>
+      Highcharts.setOptions({
+          time: {
+              timezone: 'America/New_York'
+          }
+      });
+  </script>
+
 </head>
 <body>
 <table border="1">
@@ -113,129 +122,133 @@
   <tr></tr>
 </table>
 
-<div id="container" style="width: 550px; height: 400px; margin: 0 auto"></div>
-<script language="JavaScript">
-    Highcharts.setOptions({
-        time: {
-            timezone: 'America/New_York'
-        }
-    });
-    $(document).ready(function () {
-        var chart = {
-            type: 'spline',
-            zoomType: 'x',
-            panning: true,
-            panKey: 'shift'
+<div id="consProd" style="width: 550px; height: 400px; margin: 0 auto"></div>
 
-        };
-        var title = {
-            text: ' Recent Production/Consumption'
-        };
-        var subtitle = {
-            text: 'Irregular time data in Highcharts JS'
-        };
-        var xAxis = {
-            type: 'datetime',
-            title: {
-                text: 'Date'
-            }
-        };
-        var yAxis = {
-            title: {
-                text: 'w'
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+
+        Highcharts.chart('consProd', {
+
+            chart: {
+                type: 'spline',
+                zoomType: 'x',
+                panning: true,
+                panKey: 'shift'
             },
-            min: 0
-        };
-        var tooltip = {
-            headerFormat: '<b>{series.name}</b><br>',
-            pointFormat: '{point.x:%H:%M}: {point.y:.2f}w'
-        };
-        var plotOptions = {
-            useUTC: false
 
-        };
-        var series = [
-            {
-                name: 'Production',
-                data: {{ .ProducedGraphData }}
+            title: {
+                text: ' Recent Production/Consumption'
             },
-            {
-                name: 'Consumption',
-                data: {{ .ConsumedGraphData }}
-            }
-        ];
 
-        var json = {};
-        json.chart = chart;
-        json.title = title;
-        json.subtitle = subtitle;
-        json.tooltip = tooltip;
-        json.xAxis = xAxis;
-        json.yAxis = yAxis;
-        json.series = series;
-        json.plotOptions = plotOptions;
-        $('#container').highcharts(json);
+            xAxis: {
+                type: 'datetime',
+                title: {
+                    text: 'Date'
+                }
+            },
+
+            yAxis: {
+                title: {
+                    text: 'w'
+                },
+            },
+
+            tooltip: {
+                headerFormat: '<b>{series.name}</b><br>',
+                pointFormat: '{point.x:%H:%M}: {point.y:.2f}w'
+            },
+
+            plotOptions: {
+                useUTC: false
+            },
+
+            series: [
+                {
+                    name: 'Production',
+                    data: {{ .ProducedGraphData }}
+                },
+                {
+                    name: 'Consumption',
+                    data: {{ .ConsumedGraphData }}
+                }
+            ],
+
+            responsive: {
+                rules: [{
+                    condition: {
+                        maxWidth: 500
+                    },
+                    chartOptions: {
+                        legend: {
+                            layout: 'horizontal',
+                            align: 'center',
+                            verticalAlign: 'bottom'
+                        }
+                    }
+                }]
+            }
+
+        });
     });
 </script>
 
-<div id="container2" style="width: 550px; height: 400px; margin: 0 auto"></div>
-<script language="JavaScript">
-    Highcharts.setOptions({
-        time: {
-            timezone: 'America/New_York'
-        }
-    });
-    $(document).ready(function () {
-        var chart = {
-            type: 'spline',
-            zoomType: 'x',
-            panning: true,
-            panKey: 'shift'
-        };
-        var title = {
-            text: 'Battery Level'
-        };
-        var subtitle = {
-            text: '% of Capacity'
-        };
-        var xAxis = {
-            type: 'datetime',
-            title: {
-                text: 'Date'
-            }
-        };
-        var yAxis = {
-            title: {
-                text: '%'
-            },
-            min: 0,
-            max: 100
-        };
-        var tooltip = {
-            headerFormat: '<b>{series.name}</b><br>',
-            pointFormat: '{point.x:%H:%M}: {point.y:.2f}%'
-        };
-        var plotOptions = {
-            useUTC: false        };
-        var series = [
-            {
-                name: 'Level',
-                data: {{ .BatteryGraphData }}
-            },
-        ];
+<div id="battPct" style="width: 550px; height: 400px; margin: 0 auto"></div>
 
-        var json = {};
-        json.chart = chart;
-        json.title = title;
-        json.subtitle = subtitle;
-        json.tooltip = tooltip;
-        json.xAxis = xAxis;
-        json.yAxis = yAxis;
-        json.series = series;
-        json.plotOptions = plotOptions;
-        $('#container2').highcharts(json);
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+
+        Highcharts.chart('battPct', {
+            chart: {
+                type: 'line',
+                zoomType: 'x',
+                panning: true,
+                panKey: 'shift',
+            },
+            title: {
+                text: 'Battery Level'
+            },
+            xAxis: {
+                type: 'datetime',
+                title: {
+                    text: 'Date'
+                }
+            },
+            yAxis: {
+                title: {
+                    text: '%'
+                },
+                max: 100
+            },
+            tooltip: {
+                headerFormat: '<b>{series.name}</b><br>',
+                pointFormat: '{point.x:%H:%M}: {point.y:.2f}%'
+            },
+            plotOptions: {
+                useUTC: false
+            },
+            series: [
+                {
+                    name: 'Level',
+                    data: {{ .BatteryGraphData }}
+                },
+            ],
+            responsive: {
+                rules: [{
+                    condition: {
+                        maxWidth: 500
+                    },
+                    chartOptions: {
+                        legend: {
+                            layout: 'horizontal',
+                            align: 'center',
+                            verticalAlign: 'bottom'
+                        }
+                    }
+                }]
+            }
+
+        });
     });
 </script>
-
 </body>
 </html>

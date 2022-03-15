@@ -351,14 +351,14 @@ func energyHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, s, http.StatusInternalServerError)
 	}
 
-	fiveMinStatRecs, err := getFiveMinStats(location, time.Now().Local().AddDate(0, 0, -2).Unix(), time.Now().Local().Unix())
+	fiveMinStatRecs, err := getFiveMinStats(location, time.Now().Local().AddDate(-1, 0, 0).Unix(), time.Now().Local().Unix())
 	if err != nil {
 		log.Error().Err(err).Msg("getFiveMinStats()")
 	}
 	stats.EnergyHistory = fiveMinStatRecs
 	stats.ProducedGraphData, stats.ConsumedGraphData = statsChartData(fiveMinStatRecs)
 
-	fiveMinBatteryRecs, err := getFiveMinBattery(location, time.Now().Local().AddDate(0, 0, -2).Unix(), time.Now().Local().Unix())
+	fiveMinBatteryRecs, err := getFiveMinBattery(location, time.Now().Local().AddDate(-1, 0, 0).Unix(), time.Now().Local().Unix())
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("getFiveMinBattery()")
 	}

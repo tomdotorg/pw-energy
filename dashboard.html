@@ -1,12 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <script src="https://code.highcharts.com/stock/highstock.js"></script>
+  <script src="https://code.highcharts.com/stock/modules/data.js"></script>
+  <script src="https://code.highcharts.com/stock/highcharts-more.js"></script>
+  <script src="https://code.highcharts.com/stock/modules/exporting.js"></script>
 
-  <script src="https://code.highcharts.com/indicators/indicators-all.js"></script>
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
-  <script src="https://code.highcharts.com/highcharts.js"></script>
   <script src="https://code.highcharts.com/modules/boost.js"></script>
-  <script src="https://code.highcharts.com/modules/exporting.js"></script>
   <!-- optional -->
   <script src="https://code.highcharts.com/modules/draggable-points.js"></script>
   <script src="https://code.highcharts.com/modules/offline-exporting.js"></script>
@@ -19,7 +20,7 @@
   <script src="https://code.highcharts.com/modules/full-screen.js"></script>
   <meta charset="UTF-8">
   <title>Energy Dashboard</title>
-  <meta http-equiv="refresh" content="60">
+  <meta http-equiv="refresh" content="180">
   <script>
       Highcharts.setOptions({
           time: {
@@ -122,12 +123,12 @@
   <tr></tr>
 </table>
 
-<div id="consProd" style="width: 550px; height: 400px; margin: 0 auto"></div>
+<div id="consProd" style="width: 100%; height: 500px; margin: 0 auto"></div>
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {
 
-        Highcharts.chart('consProd', {
+        Highcharts.stockChart('consProd', {
 
             chart: {
                 type: 'spline',
@@ -135,7 +136,39 @@
                 panning: true,
                 panKey: 'shift'
             },
-
+            rangeSelector: {
+                buttons: [{
+                    type: 'day',
+                    count: 1,
+                    text: 'Day',
+                    title: 'View 1 day'
+                }, {
+                    type: 'week',
+                    count: 1,
+                    text: 'Week',
+                    title: 'View 1 week'
+                }, {
+                    type: 'month',
+                    count: 1,
+                    text: 'Month',
+                    title: 'View 1 month'
+                }, {
+                    type: 'month',
+                    count: 3,
+                    text: '3 Months',
+                    title: 'View 3 months'
+                }, {
+                    type: 'year',
+                    count: 1,
+                    text: '1y',
+                    title: 'View 1 year'
+                }, {
+                    type: 'all',
+                    text: 'All',
+                    title: 'View all'
+                }],
+                selected: 0
+            },
             title: {
                 text: ' Recent Production/Consumption'
             },
@@ -157,6 +190,9 @@
                 headerFormat: '<b>{series.name}</b><br>',
                 pointFormat: '{point.x:%H:%M}: {point.y:.2f}w'
             },
+            legend: {
+                enabled: true
+            },
 
             plotOptions: {
                 useUTC: false
@@ -170,6 +206,16 @@
                 {
                     name: 'Consumption',
                     data: {{ .ConsumedGraphData }}
+                }
+                ,
+                {
+                    name: 'Site',
+                    data: {{ .SiteGraphData }}
+                }
+                ,
+                {
+                    name: 'Battery',
+                    data: {{ .BatteryGraphData }}
                 }
             ],
 
@@ -192,17 +238,50 @@
     });
 </script>
 
-<div id="battPct" style="width: 550px; height: 400px; margin: 0 auto"></div>
+<div id="battPct" style="width: 100%; height: 500px; margin: 0 auto"></div>
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {
 
-        Highcharts.chart('battPct', {
+        Highcharts.stockChart('battPct', {
             chart: {
                 type: 'line',
                 zoomType: 'x',
                 panning: true,
                 panKey: 'shift',
+            },
+            rangeSelector: {
+                buttons: [{
+                    type: 'day',
+                    count: 1,
+                    text: 'Day',
+                    title: 'View 1 day'
+                }, {
+                    type: 'week',
+                    count: 1,
+                    text: 'Week',
+                    title: 'View 1 week'
+                }, {
+                    type: 'month',
+                    count: 1,
+                    text: 'Month',
+                    title: 'View 1 month'
+                }, {
+                    type: 'month',
+                    count: 3,
+                    text: '3 Months',
+                    title: 'View 3 months'
+                }, {
+                    type: 'year',
+                    count: 1,
+                    text: '1y',
+                    title: 'View 1 year'
+                }, {
+                    type: 'all',
+                    text: 'All',
+                    title: 'View all'
+                }],
+                selected: 0
             },
             title: {
                 text: 'Battery Level'

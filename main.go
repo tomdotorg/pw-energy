@@ -52,6 +52,7 @@ type TopStats struct {
 	ConsumedGraphData     string
 	ProducedGraphData     string
 	BatteryGraphData      string
+	SiteGraphData         string
 }
 
 type BatteryPctDisplayRecord struct {
@@ -208,18 +209,24 @@ func dbConnect() {
 	log.Fatal().Err(err).Msgf("Could not connect to database: %s", err)
 }
 
-func statsChartData(in []StatsDisplayRecord) (prod string, cons string) {
+func statsChartData(in []StatsDisplayRecord) (prod string, cons string, site string, batt string) {
 	prod = "["
 	cons = "["
+	site = "["
+	batt = "["
 	for _, v := range in {
 		dt := v.DateTime * 1000
 		prod += fmt.Sprintf("[%d,%f],", dt, v.SolarAvg)
 		cons += fmt.Sprintf("[%d,%f],", dt, v.LoadAvg)
+		site += fmt.Sprintf("[%d,%f],", dt, v.SiteAvg)
+		batt += fmt.Sprintf("[%d,%f],", dt, v.BatteryAvg)
 	}
 	prod = prod[:len(prod)-1] + "]"
 	cons = cons[:len(cons)-1] + "]"
+	site = site[:len(site)-1] + "]"
+	batt = batt[:len(batt)-1] + "]"
 
-	return prod, cons
+	return prod, cons, site, batt
 }
 
 func batteryChartData(in []BatteryPctDisplayRecord) (pct string) {
@@ -358,7 +365,7 @@ func energyHandler(w http.ResponseWriter, r *http.Request) {
 		log.Error().Err(err).Msg("getFiveMinStats()")
 	}
 	stats.EnergyHistory = fiveMinStatRecs
-	stats.ProducedGraphData, stats.ConsumedGraphData = statsChartData(fiveMinStatRecs)
+	stats.ProducedGraphData, stats.ConsumedGraphData, stats.SiteGraphData, stats.BatteryGraphData = statsChartData(fiveMinStatRecs)
 
 	fiveMinBatteryRecs, err := getFiveMinBattery(location, beginDate, endDate)
 	if err != nil {

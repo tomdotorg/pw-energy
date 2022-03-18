@@ -137,6 +137,11 @@
             },
             rangeSelector: {
                 buttons: [{
+                    type: 'hour',
+                    count: 3,
+                    text: '3 hr',
+                    title: 'View 3 hours'
+                },{
                     type: 'day',
                     count: 1,
                     text: 'Day',
@@ -152,11 +157,6 @@
                     text: 'Month',
                     title: 'View 1 month'
                 }, {
-                    type: 'month',
-                    count: 3,
-                    text: '3 Months',
-                    title: 'View 3 months'
-                }, {
                     type: 'year',
                     count: 1,
                     text: '1y',
@@ -166,7 +166,7 @@
                     text: 'All',
                     title: 'View all'
                 }],
-                selected: 0
+                selected: 1
             },
             title: {
                 text: ' Recent Production/Consumption'
@@ -252,6 +252,11 @@
             },
             rangeSelector: {
                 buttons: [{
+                    type: 'hour',
+                    count: 3,
+                    text: '3 hr',
+                    title: 'View 3 hours'
+                },{
                     type: 'day',
                     count: 1,
                     text: 'Day',
@@ -267,11 +272,6 @@
                     text: 'Month',
                     title: 'View 1 month'
                 }, {
-                    type: 'month',
-                    count: 3,
-                    text: '3 Months',
-                    title: 'View 3 months'
-                }, {
                     type: 'year',
                     count: 1,
                     text: '1y',
@@ -281,7 +281,7 @@
                     text: 'All',
                     title: 'View all'
                 }],
-                selected: 0
+                selected: 1
             },
             title: {
                 text: 'Battery Level'
@@ -308,7 +308,7 @@
             series: [
                 {
                     name: 'Level',
-                    data: {{ .BatteryGraphData }}
+                    data: {{ .BatteryPctGraphData }}
                 },
             ],
             responsive: {

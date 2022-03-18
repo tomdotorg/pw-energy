@@ -53,6 +53,7 @@ type TopStats struct {
 	ProducedGraphData     string
 	BatteryGraphData      string
 	SiteGraphData         string
+	BatteryPctGraphData   string
 }
 
 type BatteryPctDisplayRecord struct {
@@ -372,7 +373,7 @@ func energyHandler(w http.ResponseWriter, r *http.Request) {
 		log.Error().Stack().Err(err).Msg("getFiveMinBattery()")
 	}
 	stats.FiveMinBatteryHistory = fiveMinBatteryRecs
-	stats.BatteryGraphData = batteryChartData(fiveMinBatteryRecs)
+	stats.BatteryPctGraphData = batteryChartData(fiveMinBatteryRecs)
 
 	if err := dashboardTmpl.Execute(w, stats); err != nil {
 		msg := http.StatusText(http.StatusInternalServerError)

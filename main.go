@@ -311,8 +311,8 @@ func main() {
 	// Prepare template for execution.
 	liveTmpl = template.Must(template.ParseFiles("live.html"))
 	liveData = templateData{
-		Service:  "sample service",
-		Revision: "1.0",
+		Service:  "live service",
+		Revision: "0.1",
 	}
 	http.HandleFunc("/live", liveChartHandler)
 

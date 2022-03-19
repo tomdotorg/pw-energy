@@ -139,6 +139,8 @@ var (
 	indexTmpl     *template.Template
 	dashboardTmpl *template.Template
 	chartsTmpl    *template.Template
+	liveTmpl      *template.Template
+	liveData      templateData
 )
 
 type ValueDisplayRecord struct {
@@ -306,6 +308,14 @@ func main() {
 	}
 	http.HandleFunc("/", helloRunHandler)
 
+	// Prepare template for execution.
+	liveTmpl = template.Must(template.ParseFiles("live.html"))
+	liveData = templateData{
+		Service:  "sample service",
+		Revision: "1.0",
+	}
+	http.HandleFunc("/live", liveChartHandler)
+
 	dashboardTmpl = template.Must(template.ParseFiles("dashboard.html"))
 	http.HandleFunc("/energy", energyHandler)
 
@@ -388,6 +398,13 @@ func helloRunHandler(w http.ResponseWriter, r *http.Request) {
 		msg := http.StatusText(http.StatusInternalServerError)
 		log.Printf("template.Execute: %v", err)
 		http.Error(w, msg, http.StatusInternalServerError)
+	}
+}
+
+func liveChartHandler(w http.ResponseWriter, r *http.Request) {
+	if err := liveTmpl.Execute(w, nil); err != nil {
+		msg := http.StatusText(http.StatusInternalServerError)
+		log.Error().Err(err).Msg(msg)
 	}
 }
 

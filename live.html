@@ -6,20 +6,9 @@
   <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
   <script src="assets/paho-mqtt.js" type="text/javascript"></script>
   <script type="text/javascript">
-      /*
-      by @bordignon on twitter
-      Feb 2014
-      Simple example of plotting live mqtt/websockets data using highcharts.
-      public broker and topic you can use for testing.
-        var MQTTbroker = 'broker.mqttdashboard.com';
-        var MQTTport = 8000;
-        var MQTTsubTopic = 'dcsquare/cubes/#'; //works with wildcard # and + topics dynamically now
-      */
-
       //settings BEGIN
-      var MQTTbroker = 'mqtt.tom.org';
-      var MQTTport = 9001;
-      // var MQTTsubTopic = 'energy/ma/energy/#'; //works with wildcard # and + topics dynamically now
+      var MQTTbroker = 'www.tom.org';
+      var MQTTport = 8083;
       var MQTTsubTopic = 'energy/+/energy'; //works with wildcard # and + topics dynamically now
       //settings END
 
@@ -36,6 +25,7 @@
       //mqtt connecton options including the mqtt broker subscriptions
       var options = {
           timeout: 3,
+          useSSL: true,
           onSuccess: function () {
               console.log("mqtt connected");
               // Connection succeeded; subscribe to our topics

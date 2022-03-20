@@ -29,6 +29,7 @@ WORKDIR /energy
 COPY --from=build /app ./app
 COPY index.html index.html
 COPY dashboard.html dashboard.html
+COPY live.html live.html
 COPY assets assets/
 
 ENTRYPOINT ["./app"]

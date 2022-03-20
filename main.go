@@ -402,9 +402,9 @@ func helloRunHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func liveChartHandler(w http.ResponseWriter, r *http.Request) {
-	if err := liveTmpl.Execute(w, nil); err != nil {
+	if err := liveTmpl.Execute(w, liveData); err != nil {
 		msg := http.StatusText(http.StatusInternalServerError)
-		log.Error().Err(err).Msg(msg)
+		log.Error().Err(err).Stack().Msg(msg)
 	}
 }
 

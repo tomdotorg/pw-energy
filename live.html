@@ -87,6 +87,9 @@
 
           //i find i have to set this to false if i have trouble with timezones.
           Highcharts.setOptions({
+              lang: {
+                  thousandsSep: ','
+              },
               global: {
                   useUTC: false
               }
@@ -104,7 +107,7 @@
 
           var series = chart.series[0],
               shift = series.data.length > 2000; // shift if the series is
-                                               // longer than 20
+          // longer than 20
           // add the point
           chart.series[chartno].addPoint(point, true, shift);
 

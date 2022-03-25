@@ -50,20 +50,32 @@
               dataTopics.push(message.destinationName); //add new topic to array
               let y = dataTopics.indexOf(message.destinationName); //get the index no
               //create new data series for the chart
-              let newSeries = {
-                  id: y,
-                  name: message.destinationName,
+              let loadSeries = {
+                  id: 0,
+                  name: "Load",
                   data: {{ .LoadData }}
               };
-              chart.addSeries(newSeries); //add the series
+              chart.addSeries(loadSeries); //add the series
+              let solarSeries = {
+                  id: 1,
+                  name: "Solar",
+                  data: {{ .SolarData }}
+              };
+              chart.addSeries(solarSeries); //add the series
           }
           let y = dataTopics.indexOf(message.destinationName); //get the index no of the topic from the array
           let myEpoch = new Date().getTime(); //get current epoch time
           let load = Math.round(energyData.load.instant_power);
           let plotLoad = [myEpoch, Number(load)]; //create the array
           if (isNumber(load)) { //check if it is a real number and not text
-              console.log('is a proper number, will send to chart.')
-              plot(plotLoad, y);	//send it to the plot function
+              console.log('is a proper load number, will send to chart.')
+              plot(plotLoad, 0);	//send it to the plot function
+          }
+          let solar = Math.round(energyData.solar.instant_power);
+          let plotSolar = [myEpoch, Number(solar)]; //create the array
+          if (isNumber(solar)) { //check if it is a real number and not text
+              console.log('is a proper solar number, will send to chart.')
+              plot(plotSolar, 1);	//send it to the plot function
           }
       }
 
@@ -90,7 +102,7 @@
       function plot(point, chartNo) {
           console.log(point);
 
-          let series = chart.series[0],
+          let series = chart.series[chartNo],
               shift = series.data.length > 2000; // shift if the series is
           // longer than 20
           // add the point

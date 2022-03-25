@@ -2011,7 +2011,7 @@ var PahoMQTT = (function (global) {
 		 * @function
 		 * @param {string} filter describing the destinations to receive messages from.
 		 * <br>
-		 * @param {object} subscribeOptions - used to control the subscription
+		 * @param {{qos: number}} subscribeOptions - used to control the subscription
 		 *
 		 * @param {number} subscribeOptions.qos - the maiximum qos of any publications sent
 		 *                                  as a result of making this subscription.

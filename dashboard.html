@@ -130,7 +130,7 @@
         Highcharts.stockChart('consProd', {
 
             chart: {
-                type: 'spline',
+                type: 'line',
                 zoomType: 'x',
                 panning: true,
                 panKey: 'shift'
@@ -198,7 +198,7 @@
 
             series: [
                 {
-                    name: 'Production',
+                    name: 'Solar',
                     data: {{ .ProducedGraphData }}
                 },
                 {
@@ -245,7 +245,7 @@
 
         Highcharts.stockChart('battPct', {
             chart: {
-                type: 'line',
+                type: 'spline',
                 zoomType: 'x',
                 panning: true,
                 panKey: 'shift',

@@ -21,11 +21,13 @@ var db *sql.DB = nil
 
 // templateData provides template parameters.
 type templateData struct {
-	Service         string
-	Revision        string
-	Stats           TopStats
-	ProductionData  string
-	ConsumptionData string
+	Service     string
+	Revision    string
+	Stats       TopStats
+	LoadData    string
+	SiteData    string
+	BatteryData string
+	SolarData   string
 }
 
 type PctDisplayRecord struct {
@@ -72,11 +74,12 @@ type BatteryPctDisplayRecord struct {
 }
 
 type EnergyDisplayRecord struct { // FIXME: what is the idiom for this pattern?
-	AsOf    time.Time
-	Site    float64
-	Load    float64
-	Battery float64
-	Solar   float64
+	AsOf     time.Time
+	Location string
+	Site     float64
+	Load     float64
+	Battery  float64
+	Solar    float64
 }
 
 type StatsDisplayRecord struct {
@@ -232,6 +235,25 @@ func statsChartData(in []StatsDisplayRecord) (prod string, cons string, site str
 	return prod, cons, site, batt
 }
 
+func liveChartData(in []EnergyDisplayRecord) (prod string, cons string, site string, batt string) {
+	prod = "["
+	cons = "["
+	site = "["
+	batt = "["
+	for _, v := range in {
+		dt := v.AsOf.Local().Unix() * 1000
+		prod += fmt.Sprintf("[%d,%f],", dt, v.Solar)
+		cons += fmt.Sprintf("[%d,%f],", dt, v.Load)
+		site += fmt.Sprintf("[%d,%f],", dt, v.Site)
+		batt += fmt.Sprintf("[%d,%f],", dt, v.Battery)
+	}
+	prod = prod[:len(prod)-1] + "]"
+	cons = cons[:len(cons)-1] + "]"
+	site = site[:len(site)-1] + "]"
+	batt = batt[:len(batt)-1] + "]"
+	return prod, cons, site, batt
+}
+
 func batteryChartData(in []BatteryPctDisplayRecord) (pct string) {
 	pct = "["
 	for _, v := range in {
@@ -295,6 +317,36 @@ func statsByLocation(location string, limit int) (TopStats, error) {
 	return stats, nil
 }
 
+// currentEnergyByLocation returns the limit most current records
+func currentEnergyByLocation(location string, limit int) ([]EnergyDisplayRecord, error) {
+	log.Debug().Msgf("currentEnergyByLocation(%s, %d)", location, limit)
+	dbConnect()
+	var energy EnergyDisplayRecord
+	var energyList = make([]EnergyDisplayRecord, 0)
+	row, err := db.Query("select * from (SELECT id, dt asof, load_instant_power ld, battery_instant_power battery, site_instant_power site, solar_instant_power solar FROM energy where location = ? order by asOf desc limit ?) t1 order by t1.id;", location, limit)
+	if err != nil {
+		log.Error().Err(err).Msg("currentEnergyByLocation()")
+		return energyList, err
+	}
+	for row.Next() {
+		var id int
+		err := row.Scan(&id, &energy.AsOf, &energy.Load, &energy.Battery, &energy.Site, &energy.Solar)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				log.Error().Err(err).Msg("No rows returned")
+				return energyList, err
+			}
+			log.Error().Err(err).Msg("No rows returned")
+			return energyList, err
+		}
+		energy.Location = location
+		timeLoc, _ := time.LoadLocation("Local")
+		energy.AsOf = energy.AsOf.In(timeLoc)
+		energyList = append(energyList, energy)
+	}
+	return energyList, nil
+}
+
 func main() {
 	log.Debug().Msg("about to call dbConnect()")
 	dbConnect()
@@ -314,7 +366,7 @@ func main() {
 		Service:  "live service",
 		Revision: "0.1",
 	}
-	http.HandleFunc("/live", liveChartHandler)
+	http.HandleFunc("/live", liveHandler)
 
 	dashboardTmpl = template.Must(template.ParseFiles("dashboard.html"))
 	http.HandleFunc("/energy", energyHandler)
@@ -401,7 +453,15 @@ func helloRunHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func liveChartHandler(w http.ResponseWriter, r *http.Request) {
+func liveHandler(w http.ResponseWriter, r *http.Request) {
+	// TODO parameterize location
+	recs, err := currentEnergyByLocation("VT", 2000)
+	if err != nil {
+		s := fmt.Sprintf("%+v", err)
+		http.Error(w, s, http.StatusInternalServerError)
+	}
+	// log.Debug().Msgf("live recs: %+v", recs)
+	liveData.SolarData, liveData.LoadData, liveData.SiteData, liveData.BatteryData = liveChartData(recs)
 	if err := liveTmpl.Execute(w, liveData); err != nil {
 		msg := http.StatusText(http.StatusInternalServerError)
 		log.Error().Err(err).Stack().Msg(msg)

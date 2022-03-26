@@ -109,12 +109,14 @@
           chart.series[chartNo].addPoint(point, true, shift);
 
       }
+
       //settings for the chart
       $(document).ready(function () {
-          chart = new Highcharts.Chart({
+          chart = new Highcharts.StockChart({
               chart: {
                   renderTo: 'container',
-                  defaultSeriesType: 'spline'
+                  defaultSeriesType: 'spline',
+                  zoomType: 'x',
               },
               title: {
                   text: 'Plotting Live websockets data from a MQTT topic'

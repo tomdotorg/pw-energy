@@ -242,11 +242,12 @@ func liveChartData(in []EnergyDisplayRecord) (prod string, cons string, site str
 	batt = "["
 	for _, v := range in {
 		dt := v.AsOf.Local().Unix() * 1000
-		prod += fmt.Sprintf("[%d,%f],", dt, v.Solar)
 		cons += fmt.Sprintf("[%d,%f],", dt, v.Load)
 		site += fmt.Sprintf("[%d,%f],", dt, v.Site)
 		batt += fmt.Sprintf("[%d,%f],", dt, v.Battery)
+		prod += fmt.Sprintf("[%d,%f],", dt, v.Solar)
 	}
+
 	prod = prod[:len(prod)-1] + "]"
 	cons = cons[:len(cons)-1] + "]"
 	site = site[:len(site)-1] + "]"

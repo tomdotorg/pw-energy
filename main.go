@@ -456,7 +456,8 @@ func helloRunHandler(w http.ResponseWriter, r *http.Request) {
 
 func liveHandler(w http.ResponseWriter, r *http.Request) {
 	// TODO parameterize location
-	recs, err := currentEnergyByLocation("VT", 2000)
+	const LiveLimit = 1000
+	recs, err := currentEnergyByLocation("VT", LiveLimit)
 	if err != nil {
 		s := fmt.Sprintf("%+v", err)
 		http.Error(w, s, http.StatusInternalServerError)

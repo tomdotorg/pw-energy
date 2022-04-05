@@ -98,9 +98,8 @@
       function plot(point, chartNo) {
           console.log(point);
 
-          const LiveLimit = 1000
           let series = chart.series[chartNo]
-          let shift = series.data.length > LiveLimit
+          let shift = series.data.length > {{ .LiveLimit }}
           chart.series[chartNo].addPoint(point, true, shift);
 
       }

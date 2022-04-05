@@ -29,6 +29,7 @@ type templateData struct {
 	BatteryData  string
 	SolarData    string
 	MQTTSubTopic string
+	LiveLimit    int
 }
 
 type PctDisplayRecord struct {
@@ -456,7 +457,7 @@ func helloRunHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func liveHandler(w http.ResponseWriter, r *http.Request) {
-	// TODO parameterize location
+	// TODO parameterize location properly
 	var location string
 	keys, ok := r.URL.Query()["location"]
 	if !ok || len(keys) != 1 {
@@ -465,8 +466,20 @@ func liveHandler(w http.ResponseWriter, r *http.Request) {
 		location = strings.ToUpper(keys[0])
 	}
 	log.Debug().Msgf(`location: %s`, location)
-	const LiveLimit = 1000
-	recs, err := currentEnergyByLocation(location, LiveLimit)
+
+	limit, ok := r.URL.Query()["limit"]
+	if !ok || len(limit) != 1 {
+		liveData.LiveLimit = 2000
+	} else {
+		var err error
+		if liveData.LiveLimit, err = strconv.Atoi(limit[0]); err != nil {
+			log.Warn().Msgf("limit [%s] not an integer - using %d", limit[0], 2000)
+			liveData.LiveLimit = 2000
+		}
+	}
+	log.Debug().Msgf(`LiveLimit: %d`, liveData.LiveLimit)
+
+	recs, err := currentEnergyByLocation(location, liveData.LiveLimit)
 	if err != nil {
 		s := fmt.Sprintf("%+v", err)
 		http.Error(w, s, http.StatusInternalServerError)

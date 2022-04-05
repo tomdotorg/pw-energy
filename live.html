@@ -9,7 +9,6 @@
       //settings BEGIN
       const MQTTBroker = 'www.tom.org';
       const MQTTPort = 8083;
-      const MQTTSubTopic = 'energy/vt/energy'; //works with wildcard # and + topics dynamically now
       //settings END
 
       let chart; // global variable for chart
@@ -27,7 +26,7 @@
           onSuccess: function () {
               console.log("mqtt connected");
               // Connection succeeded; subscribe to our topics
-              client.subscribe(MQTTSubTopic, {qos: 1});
+              client.subscribe('{{ .MQTTSubTopic }}', {qos: 1});
           },
           onFailure: function (message) {
               console.log("Connection failed, ERROR: " + message.errorMessage);
@@ -112,7 +111,8 @@
                   defaultSeriesType: 'spline',
                   zoomType: 'x',
                   panning: true,
-                  panKey: 'shift'
+                  panKey: 'shift',
+                  animate: true
               },
               rangeSelector: {
                   buttons:[],
@@ -121,7 +121,7 @@
                   text: 'Plotting Live websockets data from a MQTT topic'
               },
               subtitle: {
-                  text: 'broker: ' + MQTTBroker + ' | port: ' + MQTTPort + ' | topic : ' + MQTTSubTopic
+                  text: 'broker: ' + MQTTBroker + ' | port: ' + MQTTPort + ' | topic : ' + '{{ .MQTTSubTopic }}'
               },
               xAxis: {
                   type: 'datetime',

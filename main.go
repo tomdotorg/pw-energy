@@ -21,13 +21,14 @@ var db *sql.DB = nil
 
 // templateData provides template parameters.
 type templateData struct {
-	Service     string
-	Revision    string
-	Stats       TopStats
-	LoadData    string
-	SiteData    string
-	BatteryData string
-	SolarData   string
+	Service      string
+	Revision     string
+	Stats        TopStats
+	LoadData     string
+	SiteData     string
+	BatteryData  string
+	SolarData    string
+	MQTTSubTopic string
 }
 
 type PctDisplayRecord struct {
@@ -456,13 +457,24 @@ func helloRunHandler(w http.ResponseWriter, r *http.Request) {
 
 func liveHandler(w http.ResponseWriter, r *http.Request) {
 	// TODO parameterize location
+	var location string
+	keys, ok := r.URL.Query()["location"]
+	if !ok || len(keys) != 1 {
+		location = "VT"
+	} else {
+		location = strings.ToUpper(keys[0])
+	}
+	log.Debug().Msgf(`location: %s`, location)
 	const LiveLimit = 1000
-	recs, err := currentEnergyByLocation("VT", LiveLimit)
+	recs, err := currentEnergyByLocation(location, LiveLimit)
 	if err != nil {
 		s := fmt.Sprintf("%+v", err)
 		http.Error(w, s, http.StatusInternalServerError)
 	}
 	// log.Debug().Msgf("live recs: %+v", recs)
+	liveData.MQTTSubTopic = "energy/" + strings.ToLower(location) + "/energy" // works with wildcard # and + topics dynamically now
+	log.Debug().Msgf(`liveData.MQTTSubTopic: %s`, liveData.MQTTSubTopic)
+
 	liveData.SolarData, liveData.LoadData, liveData.SiteData, liveData.BatteryData = liveChartData(recs)
 	if err := liveTmpl.Execute(w, liveData); err != nil {
 		msg := http.StatusText(http.StatusInternalServerError)

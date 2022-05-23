@@ -423,7 +423,7 @@ func energyHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	stats, err := statsByLocation(location, limit)
+	stats, err = statsByLocation(location, limit)
 	if err != nil {
 		s := fmt.Sprintf("%+v", err)
 		http.Error(w, s, http.StatusInternalServerError)

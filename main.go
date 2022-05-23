@@ -402,8 +402,7 @@ func energyHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Debug().Msgf(`location: %s`, location)
 
-	defaultLimitString := os.Getenv("DEFAULT_LIMIT")
-	defaultLimit, err := strconv.Atoi(defaultLimitString)
+	defaultLimit, err := strconv.Atoi(os.Getenv("DEFAULT_LIMIT"))
 	if err != nil {
 		log.Error().Err(err).Msg("DEFAULT_LIMIT failed strconv.Atoi()")
 		defaultLimit = 3

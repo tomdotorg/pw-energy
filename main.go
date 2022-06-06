@@ -506,7 +506,7 @@ func getDayStats(location string, limit int) ([]StatsDisplayRecord, error) {
 		   hi_load, hi_load_dt, low_load, low_load_dt, load_energy_imported, load_energy_exported, num_load_samples, total_load_samples,
 		   hi_battery, hi_battery_dt, low_battery, low_battery_dt, battery_energy_imported, battery_energy_exported, num_battery_samples, total_battery_samples,
 		   hi_solar, hi_solar_dt, low_solar, low_solar_dt, solar_energy_imported, solar_energy_exported, num_solar_samples, total_solar_samples
-			from day_top_stats where location = ? order by datetime desc limit 30`, location)
+			from day_top_stats where location = ? order by datetime desc limit 15`, location)
 	if err != nil {
 		log.Error().Err(err).Msgf("getDayStats(): %+v", err)
 		return nil, err
@@ -637,7 +637,7 @@ func getDayBatteryPct(location string, limit int) ([]BatteryPctDisplayRecord, er
 	log.Debug().Msgf("getDayBatteryPct(%s, %d)", location, limit)
 	rows, err := db.Query(
 		"select location, datetime, hi_pct, hi_pct_dt, low_pct, low_pct_dt, "+
-			"num_samples, total_samples from day_battery_pct where location = ? order by datetime desc limit 30",
+			"num_samples, total_samples from day_battery_pct where location = ? order by datetime desc limit 15",
 		location)
 	if err != nil {
 		log.Error().Err(err).Stack().Msg("error querying db")

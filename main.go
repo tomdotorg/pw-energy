@@ -218,22 +218,26 @@ func dbConnect() {
 }
 
 func statsChartData(in []StatsDisplayRecord) (prod string, cons string, site string, batt string) {
+	log.Debug().Msg("statsChartData()")
 	prod = "["
 	cons = "["
 	site = "["
 	batt = "["
+	n := 0
 	for _, v := range in {
 		dt := v.DateTime * 1000
 		prod += fmt.Sprintf("[%d,%f],", dt, v.SolarAvg)
 		cons += fmt.Sprintf("[%d,%f],", dt, v.LoadAvg)
 		site += fmt.Sprintf("[%d,%f],", dt, v.SiteAvg)
 		batt += fmt.Sprintf("[%d,%f],", dt, v.BatteryAvg)
+		n++
 	}
 	prod = prod[:len(prod)-1] + "]"
 	cons = cons[:len(cons)-1] + "]"
 	site = site[:len(site)-1] + "]"
 	batt = batt[:len(batt)-1] + "]"
 
+	log.Debug().Msgf("statsChartData() done: %d rows processed", n)
 	return prod, cons, site, batt
 }
 
@@ -428,7 +432,7 @@ func energyHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, s, http.StatusInternalServerError)
 	}
 
-	beginDate := time.Now().Local().AddDate(-1, 0, 0).Unix()
+	beginDate := time.Now().Local().AddDate(0, 0, -14).Unix()
 	endDate := time.Now().Local().Unix()
 	fiveMinStatRecs, err := getFiveMinStats(location, beginDate, endDate)
 	if err != nil {
@@ -448,7 +452,6 @@ func energyHandler(w http.ResponseWriter, r *http.Request) {
 		msg := http.StatusText(http.StatusInternalServerError)
 		log.Error().Err(err).Msg(msg)
 	}
-
 }
 
 // helloRunHandler responds by rendering an HTML page.
@@ -506,7 +509,7 @@ func getDayStats(location string, limit int) ([]StatsDisplayRecord, error) {
 		   hi_load, hi_load_dt, low_load, low_load_dt, load_energy_imported, load_energy_exported, num_load_samples, total_load_samples,
 		   hi_battery, hi_battery_dt, low_battery, low_battery_dt, battery_energy_imported, battery_energy_exported, num_battery_samples, total_battery_samples,
 		   hi_solar, hi_solar_dt, low_solar, low_solar_dt, solar_energy_imported, solar_energy_exported, num_solar_samples, total_solar_samples
-			from day_top_stats where location = ? order by datetime desc limit 15`, location)
+			from day_top_stats where location = ? order by datetime desc limit ?`, location, limit)
 	if err != nil {
 		log.Error().Err(err).Msgf("getDayStats(): %+v", err)
 		return nil, err
@@ -637,8 +640,8 @@ func getDayBatteryPct(location string, limit int) ([]BatteryPctDisplayRecord, er
 	log.Debug().Msgf("getDayBatteryPct(%s, %d)", location, limit)
 	rows, err := db.Query(
 		"select location, datetime, hi_pct, hi_pct_dt, low_pct, low_pct_dt, "+
-			"num_samples, total_samples from day_battery_pct where location = ? order by datetime desc limit 15",
-		location)
+			"num_samples, total_samples from day_battery_pct where location = ? order by datetime desc limit ?",
+		location, limit)
 	if err != nil {
 		log.Error().Err(err).Stack().Msg("error querying db")
 		return nil, err

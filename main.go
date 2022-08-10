@@ -210,7 +210,7 @@ func dbConnect() {
 		if pingErr != nil {
 			log.Error().Err(pingErr).Stack().Msgf("pinging db - try #%d", i)
 		} else {
-			log.Print("Connected!")
+			log.Info().Msg("Connected!")
 			return
 		}
 	}
@@ -357,15 +357,9 @@ func currentEnergyByLocation(location string, limit int) ([]EnergyDisplayRecord,
 func main() {
 	log.Debug().Msg("about to call dbConnect()")
 	dbConnect()
-	log.Info().Msg("done calling dbConnect()")
+	log.Debug().Msg("done calling dbConnect()")
 
-	// Prepare template for execution.
-	indexTmpl = template.Must(template.ParseFiles("index.html"))
-	indexData = templateData{
-		Service:  "sample service",
-		Revision: "1.0",
-	}
-	http.HandleFunc("/", helloRunHandler)
+	http.HandleFunc("/", indexHandler)
 
 	// Prepare template for execution.
 	liveTmpl = template.Must(template.ParseFiles("live.html"))
@@ -374,8 +368,8 @@ func main() {
 		Revision: "0.1",
 	}
 	http.HandleFunc("/live", liveHandler)
-
 	dashboardTmpl = template.Must(template.ParseFiles("dashboard.html"))
+
 	http.HandleFunc("/energy", energyHandler)
 
 	fs := http.FileServer(http.Dir("./assets"))
@@ -387,8 +381,7 @@ func main() {
 		port = "8080"
 	}
 
-	log.Print("Hello from Cloud Run! The container started successfully and is listening for HTTP requests on $PORT")
-	log.Printf("Listening on port %s", port)
+	log.Info().Msgf("Listening on port %s", port)
 	err := http.ListenAndServe(":"+port, nil)
 	if err != nil {
 		log.Fatal().Err(err).Msg("http.ListenAndServe()")
@@ -454,20 +447,16 @@ func energyHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// helloRunHandler responds by rendering an HTML page.
-func helloRunHandler(w http.ResponseWriter, r *http.Request) {
-	if err := indexTmpl.Execute(w, indexData); err != nil {
-		msg := http.StatusText(http.StatusInternalServerError)
-		log.Printf("template.Execute: %v", err)
-		http.Error(w, msg, http.StatusInternalServerError)
-	}
+// indexHandler responds by redirecting to Google search.
+func indexHandler(w http.ResponseWriter, r *http.Request) {
+	http.Redirect(w, r, "https://www.google.com", 301)
 }
 
 func liveHandler(w http.ResponseWriter, r *http.Request) {
-	// TODO parameterize location properly
 	var location string
 	keys, ok := r.URL.Query()["location"]
 	if !ok || len(keys) != 1 {
+		log.Debug().Msgf(`no location specified in location url parameter. using VT`)
 		location = "VT"
 	} else {
 		location = strings.ToUpper(keys[0])
@@ -476,12 +465,13 @@ func liveHandler(w http.ResponseWriter, r *http.Request) {
 
 	limit, ok := r.URL.Query()["limit"]
 	if !ok || len(limit) != 1 {
+		log.Debug().Msgf(`no limit specified in limit url parameter. using 2000`)
 		liveData.LiveLimit = 2000
 	} else {
 		var err error
 		if liveData.LiveLimit, err = strconv.Atoi(limit[0]); err != nil {
-			log.Warn().Msgf("limit [%s] not an integer - using %d", limit[0], 2000)
 			liveData.LiveLimit = 2000
+			log.Warn().Msgf("limit [%s] not an integer - using %d", limit[0], liveData.LiveLimit)
 		}
 	}
 	log.Debug().Msgf(`LiveLimit: %d`, liveData.LiveLimit)
@@ -491,7 +481,7 @@ func liveHandler(w http.ResponseWriter, r *http.Request) {
 		s := fmt.Sprintf("%+v", err)
 		http.Error(w, s, http.StatusInternalServerError)
 	}
-	// log.Debug().Msgf("live recs: %+v", recs)
+	log.Debug().Msgf("live recs: %+v", len(recs))
 	liveData.MQTTSubTopic = "energy/" + strings.ToLower(location) + "/energy" // works with wildcard # and + topics dynamically now
 	log.Debug().Msgf(`liveData.MQTTSubTopic: %s`, liveData.MQTTSubTopic)
 

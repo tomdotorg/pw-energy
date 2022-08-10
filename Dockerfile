@@ -1,5 +1,5 @@
 # Use base golang image from Docker Hub
-FROM golang:1.17 AS build
+FROM golang:1.9 AS build
 
 WORKDIR /energy
 
@@ -27,7 +27,6 @@ ENV GOTRACEBACK=single
 # Copy template & assets
 WORKDIR /energy
 COPY --from=build /app ./app
-COPY index.html index.html
 COPY dashboard.html dashboard.html
 COPY live.html live.html
 COPY assets assets/

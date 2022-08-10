@@ -5,7 +5,7 @@ WORKDIR /energy
 
 # Install dependencies in go.mod and go.sum
 COPY go.mod go.sum ./
-RUN go mod download
+RUN go get
 
 # Copy rest of the application source code
 COPY . ./

@@ -7,8 +7,8 @@
   <script src="assets/paho-mqtt.js" type="text/javascript"></script>
   <script type="text/javascript">
       //settings BEGIN
-      const MQTTBroker = 'www.tom.org';
-      const MQTTPort = 8083;
+      const MQTTBroker = 'mqtt.tom.org';
+      const MQTTPort = 9001;
       //settings END
 
       let chart; // global variable for chart
@@ -22,7 +22,7 @@
 
       let options = {
           timeout: 3,
-          useSSL: true,
+          useSSL: false,
           onSuccess: function () {
               console.log("mqtt connected");
               // Connection succeeded; subscribe to our topics

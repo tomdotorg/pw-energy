@@ -8,7 +8,7 @@
   <script type="text/javascript">
       //settings BEGIN
       const MQTTBroker = 'mqtt.tom.org';
-      const MQTTPort = 9001;
+      const MQTTPort = 8083;
       //settings END
 
       let chart; // global variable for chart
@@ -22,7 +22,8 @@
 
       let options = {
           timeout: 3,
-          useSSL: false,
+          useSSL: true,
+
           onSuccess: function () {
               console.log("mqtt connected");
               // Connection succeeded; subscribe to our topics

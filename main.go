@@ -153,7 +153,7 @@ type ValueDisplayRecord struct {
 	Value float64
 }
 
-func init() {
+func initLogs() {
 	// initialize the logger
 	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
@@ -355,6 +355,7 @@ func currentEnergyByLocation(location string, limit int) ([]EnergyDisplayRecord,
 }
 
 func main() {
+	initLogs()
 	log.Debug().Msg("about to call dbConnect()")
 	dbConnect()
 	log.Debug().Msg("done calling dbConnect()")

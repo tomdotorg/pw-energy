@@ -3,28 +3,50 @@ package main
 import (
 	"math/rand"
 	"testing"
+	"text/template"
+	"time"
+
+	"github.com/rs/zerolog/log"
 )
 
-// func init() {
-// 	fmt.Println("initLogs()")
-// 	testDotV := flag.Bool("test.v", false, "test.v")
-// 	testRun := flag.Bool("test.run", false, "test.run")
-// 	testPanic := flag.Bool("test.paniconexit0", false, "test.paniconexit0")
-// 	testLogFile := flag.Bool("test.testlogfile", false, "test.testlogfile")
-// 	fmt.Println("testDotV", testDotV)
-// 	fmt.Println("testPanic", testPanic)
-// 	fmt.Println("testLogFile", testLogFile)
-// 	fmt.Println("testRun", testRun)
-// 	flag.Parse()
-// 	testing.Init()
-// }
+func testInit() {
+	initLogs()
+}
+
+func TestParseLive(t *testing.T) {
+	testInit()
+	liveTmpl = template.Must(template.ParseFiles("live.html"))
+}
+
+func TestLiveChartData(t *testing.T) {
+	testInit()
+	// Location string
+	// Site     float64
+	// Load     float64
+	// Battery  float64
+	// Solar    float64
+
+	var testcases []EnergyDisplayRecord
+
+	asOf := time.Now()
+	for i := 0; i < 10; i++ {
+		asOf = asOf.Add(time.Second * 3 * -1)
+		rec := EnergyDisplayRecord{Site: 1000, Load: 1000, Battery: 1000, Solar: 1000, AsOf: asOf}
+		testcases = append(testcases, rec)
+		log.Printf("testcase #%d: %v", i, testcases[i])
+	}
+	// func liveChartData(in []EnergyDisplayRecord) (prod string, cons string, site string, batt string) {
+
+}
 
 func TestFoo(t *testing.T) {
+	testInit()
 	rnd := rand.Rand{}
 	t.Log("foo", rnd)
 }
 
 func TestBar(t *testing.T) {
+	testInit()
 	t.Log("bar")
 }
 

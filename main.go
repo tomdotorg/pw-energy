@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"flag"
 	"fmt"
 	"net/http"
 	"os"
@@ -158,22 +157,18 @@ func initLogs() {
 	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 
-	debugFlag := flag.Bool("debug", false, "sets log level to debugFlag")
-	consoleFlag := flag.Bool("console", false, "directs output to stdout on the consoleFlag")
-
-	flag.Parse()
-
-	if *consoleFlag {
+	if os.Getenv("CONSOLE") != "" {
+		log.Info().Msg("logging to console")
 		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 	} else {
 		log.Output(os.Stdout)
 	}
 
-	if *debugFlag {
-		zerolog.SetGlobalLevel(zerolog.DebugLevel)
-		log.Info().Msg("enabling level logging")
+	if os.Getenv("DEBUG") != "" {
+		zerolog.SetGlobalLevel(zerolog.TraceLevel)
+		log.Info().Msg("enabling Trace level logging")
 	} else {
-		log.Info().Msg("info level logging enabled")
+		log.Info().Msg("enabling Info level logging")
 	}
 }
 
@@ -182,15 +177,17 @@ func dbConnect() {
 	user := os.Getenv("DB_USER")
 	passwd := os.Getenv("DB_PASS")
 	instanceConnectionName := os.Getenv("INSTANCE_CONNECTION_NAME")
-	socketDir, isSet := os.LookupEnv("DB_SOCKET_DIR")
+	socketDir, socketIsSet := os.LookupEnv("DB_SOCKET_DIR")
 	// log.Debug("env", "DB_NAME", dbName).Msg("")
-	if !isSet {
+	if !socketIsSet {
 		socketDir = "/cloudsql"
 	}
 
 	dbURI := fmt.Sprintf("%s:%s@unix(%s/%s)/%s?parseTime=true",
 		user, passwd, socketDir, instanceConnectionName, dbName)
-	// log.Print(dbURI)
+	debugURI := fmt.Sprintf("%s:%s@unix(%s/%s)/%s?parseTime=true",
+		user, "<password>", socketDir, instanceConnectionName, dbName)
+	log.Trace().Msgf("connecting to: [%s]", debugURI)
 	// dbPool is the pool of database connections.
 	var err error
 	const retries = 5
@@ -217,48 +214,56 @@ func dbConnect() {
 	log.Fatal().Err(err).Msgf("Could not connect to database: %s", err)
 }
 
-func statsChartData(in []StatsDisplayRecord) (prod string, cons string, site string, batt string) {
+func statsChartData(in []StatsDisplayRecord) (p string, c string, s string, b string) {
 	log.Debug().Msg("statsChartData()")
-	prod = "["
-	cons = "["
-	site = "["
-	batt = "["
+	var prod, cons, site, batt strings.Builder
+
+	prod.WriteString("[")
+	cons.WriteString("[")
+	site.WriteString("[")
+	batt.WriteString("[")
 	n := 0
 	for _, v := range in {
 		dt := v.DateTime * 1000
-		prod += fmt.Sprintf("[%d,%f],", dt, v.SolarAvg)
-		cons += fmt.Sprintf("[%d,%f],", dt, v.LoadAvg)
-		site += fmt.Sprintf("[%d,%f],", dt, v.SiteAvg)
-		batt += fmt.Sprintf("[%d,%f],", dt, v.BatteryAvg)
+		prod.WriteString(fmt.Sprintf("[%d,%f],", dt, v.SolarAvg))
+		cons.WriteString(fmt.Sprintf("[%d,%f],", dt, v.LoadAvg))
+		site.WriteString(fmt.Sprintf("[%d,%f],", dt, v.SiteAvg))
+		batt.WriteString(fmt.Sprintf("[%d,%f],", dt, v.BatteryAvg))
 		n++
 	}
-	prod = prod[:len(prod)-1] + "]"
-	cons = cons[:len(cons)-1] + "]"
-	site = site[:len(site)-1] + "]"
-	batt = batt[:len(batt)-1] + "]"
+	prod.WriteString("]")
+	cons.WriteString("]")
+	site.WriteString("]")
+	batt.WriteString("]")
 
 	log.Debug().Msgf("statsChartData() done: %d rows processed", n)
-	return prod, cons, site, batt
+	return prod.String(), cons.String(), site.String(), batt.String()
 }
 
-func liveChartData(in []EnergyDisplayRecord) (prod string, cons string, site string, batt string) {
-	prod = "["
-	cons = "["
-	site = "["
-	batt = "["
+func liveChartData(in []EnergyDisplayRecord) (p string, c string, s string, b string) {
+	var prod, cons, site, batt strings.Builder
+
+	prod.WriteString("[")
+	cons.WriteString("[")
+	site.WriteString("[")
+	batt.WriteString("[")
+
+	n := 0
 	for _, v := range in {
 		dt := v.AsOf.Local().Unix() * 1000
-		cons += fmt.Sprintf("[%d,%f],", dt, v.Load)
-		site += fmt.Sprintf("[%d,%f],", dt, v.Site)
-		batt += fmt.Sprintf("[%d,%f],", dt, v.Battery)
-		prod += fmt.Sprintf("[%d,%f],", dt, v.Solar)
+		cons.WriteString(fmt.Sprintf("[%d,%f],", dt, v.Load))
+		site.WriteString(fmt.Sprintf("[%d,%f],", dt, v.Site))
+		batt.WriteString(fmt.Sprintf("[%d,%f],", dt, v.Battery))
+		prod.WriteString(fmt.Sprintf("[%d,%f],", dt, v.Solar))
 	}
 
-	prod = prod[:len(prod)-1] + "]"
-	cons = cons[:len(cons)-1] + "]"
-	site = site[:len(site)-1] + "]"
-	batt = batt[:len(batt)-1] + "]"
-	return prod, cons, site, batt
+	prod.WriteString("]")
+	cons.WriteString("]")
+	site.WriteString("]")
+	batt.WriteString("]")
+
+	log.Debug().Msgf("liveChartData() done: %d rows processed", n)
+	return prod.String(), cons.String(), site.String(), batt.String()
 }
 
 func batteryChartData(in []BatteryPctDisplayRecord) (pct string) {

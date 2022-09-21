@@ -266,14 +266,15 @@ func liveChartData(in []EnergyDisplayRecord) (p string, c string, s string, b st
 	return prod.String(), cons.String(), site.String(), batt.String()
 }
 
-func batteryChartData(in []BatteryPctDisplayRecord) (pct string) {
-	pct = "["
+func batteryChartData(in []BatteryPctDisplayRecord) (p string) {
+	var pct strings.Builder
+	pct.WriteString("[")
 	for _, v := range in {
 		dt := v.DateTime * 1000
-		pct += fmt.Sprintf("[%d,%f],", dt, v.AvgPct)
+		pct.WriteString(fmt.Sprintf("[%d,%f],", dt, v.AvgPct))
 	}
-	pct = pct[:len(pct)-1] + "]"
-	return pct
+	pct.WriteString("]")
+	return pct.String()
 }
 
 // statsByLocation queries for the summary information for a site.

@@ -432,7 +432,8 @@ func energyHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, s, http.StatusInternalServerError)
 	}
 
-	beginDate := time.Now().Local().AddDate(0, 0, -14).Unix()
+	const graphDays = 60
+	beginDate := time.Now().Local().AddDate(0, 0, -graphDays).Unix()
 	endDate := time.Now().Local().Unix()
 	fiveMinStatRecs, err := getFiveMinStats(location, beginDate, endDate)
 	if err != nil {

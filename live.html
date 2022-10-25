@@ -88,6 +88,18 @@
               console.log('is a proper solar number, will send to chart.')
               plot(plotSolar, 1);	//send it to the plot function
           }
+          let battery = Math.round(energyData.battery.instant_power);
+          let plotBattery = [myEpoch, Number(battery)]; //create the array
+          if (isNumber(battery)) { //check if it is a real number and not text
+              console.log('is a proper battery number, will send to chart.')
+              plot(plotBattery, 2);	//send it to the plot function
+          }
+          let site = Math.round(energyData.site.instant_power);
+          let plotSite = [myEpoch, Number(site)]; //create the array
+          if (isNumber(site)) { //check if it is a real number and not text
+              console.log('is a proper site number, will send to chart.')
+              plot(plotSite, 3);	//send it to the plot function
+          }
       }
 
       function isNumber(n) {

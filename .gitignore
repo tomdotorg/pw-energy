@@ -16,3 +16,4 @@ debug
 /.idea/**
 /.vscode/**
 /run-docker.sh
+/energy_msg.json

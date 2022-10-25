@@ -214,7 +214,7 @@ func dbConnect() {
 	log.Fatal().Err(err).Msgf("Could not connect to database: %s", err)
 }
 
-func statsChartData(in []StatsDisplayRecord) (p string, c string, s string, b string) {
+func statsChartData(in []StatsDisplayRecord) (production string, consumption string, grid string, battery string) {
 	log.Debug().Msg("statsChartData()")
 	var prod, cons, site, batt strings.Builder
 

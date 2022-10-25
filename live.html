@@ -61,6 +61,18 @@
                   data: {{ .SolarData }}
               };
               chart.addSeries(solarSeries); //add the series
+              let batterySeries = {
+                  id: 2,
+                  name: "Battery",
+                  data: {{ .BatteryData }}
+              };
+              chart.addSeries(batterySeries); //add the series
+              let gridSeries = {
+                  id: 3,
+                  name: "Grid",
+                  data: {{ .SiteData }}
+              };
+              chart.addSeries(gridSeries); //add the series
           }
           let y = dataTopics.indexOf(message.destinationName); //get the index no of the topic from the array
           let myEpoch = new Date().getTime(); //get current epoch time

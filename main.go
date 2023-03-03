@@ -29,6 +29,7 @@ type templateData struct {
 	SolarData    string
 	MQTTSubTopic string
 	LiveLimit    int
+	Location     string
 }
 
 type PctDisplayRecord struct {
@@ -493,6 +494,7 @@ func liveHandler(w http.ResponseWriter, r *http.Request) {
 	liveData.MQTTSubTopic = "energy/" + strings.ToLower(location) + "/energy" // works with wildcard # and + topics dynamically now
 	log.Debug().Msgf(`liveData.MQTTSubTopic: %s`, liveData.MQTTSubTopic)
 
+	liveData.Location = location
 	liveData.SolarData, liveData.LoadData, liveData.SiteData, liveData.BatteryData = liveChartData(recs)
 	if err := liveTmpl.Execute(w, liveData); err != nil {
 		msg := http.StatusText(http.StatusInternalServerError)

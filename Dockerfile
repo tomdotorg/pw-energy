@@ -27,8 +27,9 @@ ENV GOTRACEBACK=single
 # Copy template & assets
 WORKDIR /energy
 COPY --from=build /app ./app
-COPY dashboard.html dashboard.html
-COPY live.html live.html
+COPY *.html ./
+#COPY dashboard.html dashboard.html
+#COPY live.html live.html
 COPY assets assets/
 
 ENTRYPOINT ["./app"]

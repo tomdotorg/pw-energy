@@ -386,6 +386,7 @@ func main() {
 		Revision: "0.1",
 	}
 	http.HandleFunc("/live", liveHandler)
+
 	dashboardTmpl = template.Must(template.ParseFiles("dashboard.html"))
 
 	http.HandleFunc("/energy", energyHandler)

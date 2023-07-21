@@ -536,7 +536,7 @@ func instantHandler(w http.ResponseWriter, r *http.Request) {
 	//	}
 	//}
 	//log.Debug().Msgf(`LiveLimit: %d`, liveData.LiveLimit)
-	if err := instantTmpl.Execute(w, liveData); err != nil {
+	if err := instantTmpl.Execute(w, nil); err != nil {
 		msg := http.StatusText(http.StatusInternalServerError)
 		log.Error().Err(err).Stack().Msg(msg)
 	}

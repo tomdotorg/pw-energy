@@ -371,7 +371,6 @@ func main() {
 
 	/* flare students work */
 
-	// Prepare template for execution.
 	instantTmpl = template.Must(template.ParseFiles("instant.html"))
 	instantData = templateData{
 		Service:  "instant service",

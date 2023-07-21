@@ -508,10 +508,9 @@ func liveHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func instantHandler(w http.ResponseWriter, r *http.Request) {
+	log.Info().Msg("instantHandler()")
 	if err := instantTmpl.Execute(w, instantData); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		msg := http.StatusText(http.StatusInternalServerError)
-		log.Error().Err(err).Stack().Msg(msg)
+		http.Error(w, "error rendering instant.html", http.StatusInternalServerError)
 	}
 }
 

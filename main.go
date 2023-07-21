@@ -368,8 +368,6 @@ func main() {
 	dbConnect()
 	log.Debug().Msg("done calling dbConnect()")
 
-	http.HandleFunc("/", indexHandler)
-
 	/* flare students work */
 
 	// Prepare template for execution.
@@ -465,11 +463,6 @@ func energyHandler(w http.ResponseWriter, r *http.Request) {
 		msg := http.StatusText(http.StatusInternalServerError)
 		log.Error().Err(err).Msg(msg)
 	}
-}
-
-// indexHandler responds by redirecting to Google search.
-func indexHandler(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, "https://www.google.com", 301)
 }
 
 func liveHandler(w http.ResponseWriter, r *http.Request) {

@@ -145,6 +145,7 @@ var (
 	dashboardTmpl *template.Template
 	chartsTmpl    *template.Template
 	liveTmpl      *template.Template
+	instantTmpl   *template.Template
 	liveData      templateData
 )
 
@@ -369,6 +370,16 @@ func main() {
 
 	http.HandleFunc("/", indexHandler)
 
+	/* flare students work */
+
+	// Prepare template for execution.
+	instantTmpl = template.Must(template.ParseFiles("instant.html"))
+	liveData = templateData{
+		Service:  "instant service",
+		Revision: "0.1",
+	}
+	http.HandleFunc("/instant", instantHandler)
+
 	// Prepare template for execution.
 	liveTmpl = template.Must(template.ParseFiles("live.html"))
 	liveData = templateData{
@@ -497,6 +508,47 @@ func liveHandler(w http.ResponseWriter, r *http.Request) {
 	liveData.Location = location
 	liveData.SolarData, liveData.LoadData, liveData.SiteData, liveData.BatteryData = liveChartData(recs)
 	if err := liveTmpl.Execute(w, liveData); err != nil {
+		msg := http.StatusText(http.StatusInternalServerError)
+		log.Error().Err(err).Stack().Msg(msg)
+	}
+}
+
+func instantHandler(w http.ResponseWriter, r *http.Request) {
+	var location string
+	keys, ok := r.URL.Query()["location"]
+	if !ok || len(keys) != 1 {
+		log.Debug().Msgf(`no location specified in location url parameter. using VT`)
+		location = "VT"
+	} else {
+		location = strings.ToUpper(keys[0])
+	}
+	log.Debug().Msgf(`location: %s`, location)
+
+	limit, ok := r.URL.Query()["limit"]
+	if !ok || len(limit) != 1 {
+		log.Debug().Msgf(`no limit specified in limit url parameter. using 2000`)
+		liveData.LiveLimit = 2000
+	} else {
+		var err error
+		if liveData.LiveLimit, err = strconv.Atoi(limit[0]); err != nil {
+			liveData.LiveLimit = 2000
+			log.Warn().Msgf("limit [%s] not an integer - using %d", limit[0], liveData.LiveLimit)
+		}
+	}
+	log.Debug().Msgf(`LiveLimit: %d`, liveData.LiveLimit)
+
+	recs, err := currentEnergyByLocation(location, liveData.LiveLimit)
+	if err != nil {
+		s := fmt.Sprintf("%+v", err)
+		http.Error(w, s, http.StatusInternalServerError)
+	}
+	log.Debug().Msgf("live recs: %+v", len(recs))
+	liveData.MQTTSubTopic = "energy/" + strings.ToLower(location) + "/energy" // works with wildcard # and + topics dynamically now
+	log.Debug().Msgf(`liveData.MQTTSubTopic: %s`, liveData.MQTTSubTopic)
+
+	liveData.Location = location
+	liveData.SolarData, liveData.LoadData, liveData.SiteData, liveData.BatteryData = liveChartData(recs)
+	if err := instantTmpl.Execute(w, liveData); err != nil {
 		msg := http.StatusText(http.StatusInternalServerError)
 		log.Error().Err(err).Stack().Msg(msg)
 	}

@@ -368,6 +368,7 @@ func main() {
 	log.Debug().Msg("about to call dbConnect()")
 	dbConnect()
 	log.Debug().Msg("done calling dbConnect()")
+	http.HandleFunc("/", indexHandler)
 
 	/* flare students work */
 
@@ -377,7 +378,6 @@ func main() {
 		Revision: "0.1",
 	}
 	http.HandleFunc("/instant", instantHandler)
-	http.HandleFunc("/", instantHandler)
 
 	// Prepare template for execution.
 	liveTmpl = template.Must(template.ParseFiles("live.html"))
@@ -405,6 +405,10 @@ func main() {
 	if err != nil {
 		log.Fatal().Err(err).Msg("http.ListenAndServe()")
 	}
+}
+
+func indexHandler(writer http.ResponseWriter, request *http.Request) {
+	http.Error(writer, "not found", http.StatusNotFound)
 }
 
 func energyHandler(w http.ResponseWriter, r *http.Request) {

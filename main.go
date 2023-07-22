@@ -377,6 +377,7 @@ func main() {
 		Revision: "0.1",
 	}
 	http.HandleFunc("/instant", instantHandler)
+	http.HandleFunc("/", instantHandler)
 
 	// Prepare template for execution.
 	liveTmpl = template.Must(template.ParseFiles("live.html"))

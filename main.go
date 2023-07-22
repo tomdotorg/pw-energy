@@ -368,7 +368,6 @@ func main() {
 	log.Debug().Msg("about to call dbConnect()")
 	dbConnect()
 	log.Debug().Msg("done calling dbConnect()")
-	http.HandleFunc("/", indexHandler)
 
 	/* flare students work */
 
@@ -405,6 +404,8 @@ func main() {
 	if err != nil {
 		log.Fatal().Err(err).Msg("http.ListenAndServe()")
 	}
+	http.HandleFunc("/", indexHandler)
+
 }
 
 func indexHandler(writer http.ResponseWriter, request *http.Request) {

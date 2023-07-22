@@ -409,7 +409,7 @@ func main() {
 }
 
 func indexHandler(writer http.ResponseWriter, request *http.Request) {
-	http.Error(writer, "not found", http.StatusNotFound)
+	http.Error(writer, "url not found", http.StatusNotFound)
 }
 
 func energyHandler(w http.ResponseWriter, r *http.Request) {

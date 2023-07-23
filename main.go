@@ -144,10 +144,10 @@ var (
 	//indexTmpl     *template.Template
 	dashboardTmpl *template.Template
 	//chartsTmpl    *template.Template
-	liveTmpl    *template.Template
-	liveData    templateData
-	instantData templateData
-	instantTmpl *template.Template
+	liveTmpl  *template.Template
+	liveData  templateData
+	flareData templateData
+	flareTmpl *template.Template
 )
 
 //type ValueDisplayRecord struct {
@@ -371,12 +371,12 @@ func main() {
 
 	/* flare students work */
 
-	instantTmpl = template.Must(template.ParseFiles("instant.html"))
-	instantData = templateData{
-		Service:  "instant service",
+	flareTmpl = template.Must(template.ParseFiles("flare.html"))
+	flareData = templateData{
+		Service:  "flare service",
 		Revision: "0.1",
 	}
-	http.HandleFunc("/instant", instantHandler)
+	http.HandleFunc("/flare", flareHandler)
 
 	// Prepare template for execution.
 	liveTmpl = template.Must(template.ParseFiles("live.html"))
@@ -513,10 +513,10 @@ func liveHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func instantHandler(w http.ResponseWriter, r *http.Request) {
-	log.Info().Msgf("instantHandler(): %s", r.URL.Path)
-	if err := instantTmpl.Execute(w, instantData); err != nil {
-		http.Error(w, "error rendering instant.html", http.StatusInternalServerError)
+func flareHandler(w http.ResponseWriter, r *http.Request) {
+	log.Info().Msgf("flareHandler(): %s", r.URL.Path)
+	if err := flareTmpl.Execute(w, flareData); err != nil {
+		http.Error(w, "error rendering flare.html", http.StatusInternalServerError)
 	}
 }
 

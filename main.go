@@ -32,12 +32,12 @@ type templateData struct {
 	Location     string
 }
 
-type PctDisplayRecord struct {
-	location       string
-	topic          string
-	dt             time.Time
-	percentCharged float64
-}
+//type PctDisplayRecord struct {
+//	location       string
+//	topic          string
+//	dt             time.Time
+//	percentCharged float64
+//}
 
 type TopStats struct {
 	Location              string
@@ -140,20 +140,20 @@ type StatsDisplayRecord struct {
 
 // Variables used to generate the HTML page.
 var (
-	indexData     templateData
-	indexTmpl     *template.Template
+	//indexData     templateData
+	//indexTmpl     *template.Template
 	dashboardTmpl *template.Template
-	chartsTmpl    *template.Template
-	liveTmpl      *template.Template
-	liveData      templateData
-	instantTmpl   *template.Template
-	instantData   templateData
+	//chartsTmpl    *template.Template
+	liveTmpl    *template.Template
+	liveData    templateData
+	instantData templateData
+	instantTmpl *template.Template
 )
 
-type ValueDisplayRecord struct {
-	DT    int64
-	Value float64
-}
+//type ValueDisplayRecord struct {
+//	DT    int64
+//	Value float64
+//}
 
 func initLogs() {
 	// initialize the logger
@@ -409,7 +409,7 @@ func main() {
 }
 
 func indexHandler(writer http.ResponseWriter, request *http.Request) {
-	http.Error(writer, "url not found", http.StatusNotFound)
+	http.Error(writer, "url not found: "+request.URL.Path, http.StatusNotFound)
 }
 
 func energyHandler(w http.ResponseWriter, r *http.Request) {
@@ -514,7 +514,7 @@ func liveHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func instantHandler(w http.ResponseWriter, r *http.Request) {
-	log.Info().Msg("instantHandler()")
+	log.Info().Msgf("instantHandler(): %s", r.URL.Path)
 	if err := instantTmpl.Execute(w, instantData); err != nil {
 		http.Error(w, "error rendering instant.html", http.StatusInternalServerError)
 	}

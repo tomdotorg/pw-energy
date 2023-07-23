@@ -148,6 +148,8 @@ var (
 	liveData  templateData
 	flareData templateData
 	flareTmpl *template.Template
+	indexData templateData
+	indexTmpl *template.Template
 )
 
 //type ValueDisplayRecord struct {
@@ -378,6 +380,13 @@ func main() {
 	}
 	http.HandleFunc("/flare", flareHandler)
 
+	indexTmpl = template.Must(template.ParseFiles("index.html"))
+	indexData = templateData{
+		Service:  "index service",
+		Revision: "0.1",
+	}
+	http.HandleFunc("/", indexHandler)
+
 	// Prepare template for execution.
 	liveTmpl = template.Must(template.ParseFiles("live.html"))
 	liveData = templateData{
@@ -404,12 +413,13 @@ func main() {
 	if err != nil {
 		log.Fatal().Err(err).Msg("http.ListenAndServe()")
 	}
-	http.HandleFunc("/", indexHandler)
-
 }
 
-func indexHandler(writer http.ResponseWriter, request *http.Request) {
-	http.Error(writer, "url not found: "+request.URL.Path, http.StatusNotFound)
+func indexHandler(writer http.ResponseWriter, _ *http.Request) {
+	if err := indexTmpl.Execute(writer, indexData); err != nil {
+		msg := http.StatusText(http.StatusInternalServerError)
+		log.Error().Err(err).Msg(msg)
+	}
 }
 
 func energyHandler(w http.ResponseWriter, r *http.Request) {

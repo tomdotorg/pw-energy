@@ -255,6 +255,7 @@ func liveChartData(in []EnergyDisplayRecord) (p string, c string, s string, b st
 
 	n := 0
 	for _, v := range in {
+		n++
 		dt := v.AsOf.Local().Unix() * 1000
 		cons.WriteString(fmt.Sprintf("[%d,%f],", dt, v.Load))
 		site.WriteString(fmt.Sprintf("[%d,%f],", dt, v.Site))

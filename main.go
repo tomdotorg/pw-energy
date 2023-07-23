@@ -537,8 +537,7 @@ func flareHandler(w http.ResponseWriter, r *http.Request) {
 	log.Info().Msgf("flareHandler(): %s", r.URL.Path)
 	location, ok := getLocation(r)
 	if !ok {
-		s := fmt.Sprintf("%+v", "no location specified")
-		http.Error(w, s, http.StatusInternalServerError)
+		log.Debug().Msg("no location specified")
 	}
 
 	stats, err := statsByLocation(location, 200)

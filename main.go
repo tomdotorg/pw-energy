@@ -144,9 +144,9 @@ var (
 	//indexTmpl     *template.Template
 	dashboardTmpl *template.Template
 	//chartsTmpl    *template.Template
-	liveTmpl  *template.Template
-	liveData  templateData
-	flareData templateData
+	liveTmpl *template.Template
+	liveData templateData
+	//flareData templateData
 	flareTmpl *template.Template
 	indexData templateData
 	indexTmpl *template.Template
@@ -375,10 +375,10 @@ func main() {
 	/* flare students work */
 
 	flareTmpl = template.Must(template.ParseFiles("flare.html"))
-	flareData = templateData{
-		Service:  "flare service",
-		Revision: "0.1",
-	}
+	//flareData = templateData{
+	//	Service:  "flare service",
+	//	Revision: "0.1",
+	//}
 	http.HandleFunc("/flare", flareHandler)
 
 	indexTmpl = template.Must(template.ParseFiles("index.html"))
@@ -484,15 +484,11 @@ func energyHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func liveHandler(w http.ResponseWriter, r *http.Request) {
-	var location string
-	keys, ok := r.URL.Query()["location"]
-	if !ok || len(keys) != 1 {
-		log.Debug().Msgf(`no location specified in location url parameter. using VT`)
-		location = "VT"
-	} else {
-		location = strings.ToUpper(keys[0])
+	location, ok := getLocation(r)
+	if !ok {
+		s := fmt.Sprintf("%+v", "no location specified")
+		http.Error(w, s, http.StatusInternalServerError)
 	}
-	log.Debug().Msgf(`location: %s`, location)
 
 	limit, ok := r.URL.Query()["limit"]
 	if !ok || len(limit) != 1 {
@@ -524,9 +520,33 @@ func liveHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func getLocation(r *http.Request) (string, bool) {
+	var location string
+	keys, ok := r.URL.Query()["location"]
+	if !ok || len(keys) != 1 {
+		log.Debug().Msgf(`no location specified in location url parameter. using VT`)
+		location = "VT"
+	} else {
+		location = strings.ToUpper(keys[0])
+	}
+	log.Debug().Msgf(`location: %s`, location)
+	return location, ok
+}
+
 func flareHandler(w http.ResponseWriter, r *http.Request) {
 	log.Info().Msgf("flareHandler(): %s", r.URL.Path)
-	if err := flareTmpl.Execute(w, flareData); err != nil {
+	location, ok := getLocation(r)
+	if !ok {
+		s := fmt.Sprintf("%+v", "no location specified")
+		http.Error(w, s, http.StatusInternalServerError)
+	}
+
+	stats, err := statsByLocation(location, 200)
+	if err != nil {
+		s := fmt.Sprintf("%+v", err)
+		http.Error(w, s, http.StatusInternalServerError)
+	}
+	if err := flareTmpl.Execute(w, stats); err != nil {
 		http.Error(w, "error rendering flare.html", http.StatusInternalServerError)
 	}
 }

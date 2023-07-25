@@ -2,17 +2,26 @@
   <head>
     <title>{{ .Location }} Live</title>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-
+    <style>
+      div {
+        width: 16%;
+        background-color:whitesmoke;
+      }
+      p{
+        font-size:20px;
+        font
+      }
+    </style>
   </head>
   <body>
     <h2>The values we are working with are:</h2>
-    Site: {{ .SiteInstantPower }}
+    <div><p>Site: {{ .SiteInstantPower }}</p></div>
     <br>
-    Load: {{ .LoadInstantPower }}
+    <div><p>Load: {{ .LoadInstantPower }}</p></div>
     <br>
-    Battery: {{ .BatteryInstantPower }}
+    <div><p>Battery: {{ .BatteryInstantPower }}</p></div>
     <br>
-    Solar: {{ .SolarInstantPower }}
+    <div><p>Solar: {{ .SolarInstantPower }}</p>></div>
     <br>
   </body>
 </html>

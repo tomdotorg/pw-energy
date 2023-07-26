@@ -4,24 +4,25 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <style>
       div {
-        width: 16%;
-        background-color:whitesmoke;
+        width: 10%;
+        background-color:dimgray;
+        color:white;
       }
       p{
         font-size:20px;
-        font
+        font-family:Georgia;
       }
     </style>
   </head>
-  <body>
-    <h2>The values we are working with are:</h2>
+  <body style="background-color:black;">
+    <h2 style="color:white">The values we are working with are:</h2>
     <div><p>Site: {{ .SiteInstantPower }}</p></div>
     <br>
     <div><p>Load: {{ .LoadInstantPower }}</p></div>
     <br>
     <div><p>Battery: {{ .BatteryInstantPower }}</p></div>
     <br>
-    <div><p>Solar: {{ .SolarInstantPower }}</p>></div>
+    <div><p>Solar: {{ .SolarInstantPower }}</p></div>
     <br>
   </body>
 </html>

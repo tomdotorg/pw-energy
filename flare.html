@@ -3,7 +3,7 @@
     <title>{{ .Location }} Live</title>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <style>
-      div {
+      td, th {
         width: 10%;
         background-color:#393939;
         color:white;
@@ -16,13 +16,19 @@
   </head>
   <body style="background-color:black;">
     <h2 style="color:white">The values we are working with are:</h2>
-    <div><p>Site: {{ .SiteInstantPower }}</p></div>
-    <br>
-    <div><p>Load: {{ .LoadInstantPower }}</p></div>
-    <br>
-    <div><p>Battery: {{ .BatteryInstantPower }}</p></div>
-    <br>
-    <div><p>Solar: {{ .SolarInstantPower }}</p></div>
-    <br>
+    <table border="1">
+      <tr>
+        <td>Site:</td>
+        <td>Load:</td>
+        <td>Battery:</td>
+        <td>Solar:</td>
+      </tr>
+      <tr>
+        <td>{{ .SiteInstantPower }}</td>
+        <td>{{ .LoadInstantPower }}</td>
+        <td>{{ .BatteryInstantPower }}</td>
+        <td>{{ .SolarInstantPower }}</td>
+      </tr>
+    </table>
   </body>
 </html>

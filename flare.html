@@ -18,16 +18,19 @@
     <h2 style="color:white">The values we are working with are:</h2>
     <table border="1">
       <tr>
-        <td>Site:</td>
-        <td>Load:</td>
-        <td>Battery:</td>
-        <td>Solar:</td>
+        <th>Site:</th>
+        <th>Load:</th>
+        <th>Battery:</th>
+        <th>Solar:</th>
+        <th>Location:</th>
       </tr>
       <tr>
         <td>{{ .SiteInstantPower }}</td>
         <td>{{ .LoadInstantPower }}</td>
-        <td>{{ .BatteryInstantPower }}</td>
+        <td>{{ .BatteryInstantPower }}%</td>
         <td>{{ .SolarInstantPower }}</td>
+        <td>{{ .Location }}</td>
+        <td>{{ .AsOf.Format "02 Jan 06 15:04:05 MST" }}</td>
       </tr>
     </table>
   </body>

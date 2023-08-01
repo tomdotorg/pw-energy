@@ -31,7 +31,7 @@
         <td>{{ .LoadInstantPower }}</td>
         <td>{{ .BatteryInstantPower }}</td>
         <td>{{ .SolarInstantPower }}</td>
-        <td>{{ printf "%.2f" .BatteryCharge}}</td>
+        <td>{{ printf "%.2f" .BatteryCharge%}}</td>
         <td>{{ .BatteryChargeAsOf.Format "02 Jan 06 15:04:05 MST" }}</td>
         <td>{{ .QueryTime}}</td>
       </tr>

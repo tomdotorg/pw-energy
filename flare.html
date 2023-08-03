@@ -16,21 +16,30 @@
   </head>
   <body style="background-color:black;">
     <h2 style="color:white">The values at {{ .Location }} as of {{ .AsOf.Format "02 Jan 06 15:04:05 MST" }}:</h2>
+    <h3 style="color:white">Main:</h3>
     <table border="1">
       <tr>
         <td>Site:</td>
         <td>Load:</td>
-        <td>Battery:</td>
         <td>Solar:</td>
+      </tr>
+      <tr>
+        <td>{{ .SiteInstantPower }}</td>
+        <td>{{ .LoadInstantPower }}</td>
+        <td>{{ .SolarInstantPower }}</td>
+      </tr>
+    </table>
+    <br>
+    <h3 style="color:white">Battery:</h3>
+    <table border="1">
+      <tr>
+        <td>Battery:</td>
         <td>Battery Charge:</td>
         <td>BattAsOf</td>
         <td>Response Time:</td>
       </tr>
       <tr>
-        <td>{{ .SiteInstantPower }}</td>
-        <td>{{ .LoadInstantPower }}</td>
         <td>{{ .BatteryInstantPower }}</td>
-        <td>{{ .SolarInstantPower }}</td>
         <td>{{ printf "%.2f" .BatteryCharge}}%</td>
         <td>{{ .BatteryChargeAsOf.Format "02 Jan 06 15:04:05 MST" }}</td>
         <td>{{ .QueryTime}}</td>

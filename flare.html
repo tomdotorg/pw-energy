@@ -27,22 +27,34 @@
         <td>{{ .SiteInstantPower }}</td>
         <td>{{ .LoadInstantPower }}</td>
         <td>{{ .SolarInstantPower }}</td>
+        <td>{{ .BatteryInstantPower }}</td>
+      </tr>
+    </table>
+    <br>
+    <h3 style="color:white">Site:</h3>
+    <table border="1">
+      <tr>
+        <td>Grid Hi</td>
+        <td>Grid Low</td>
+        <td>Grid Avg</td>
       </tr>
     </table>
     <br>
     <h3 style="color:white">Battery:</h3>
     <table border="1">
       <tr>
-        <td>Battery:</td>
         <td>Battery Charge:</td>
-        <td>BattAsOf</td>
-        <td>Response Time:</td>
+        <td>Batt Hi</td>
+        <td>Batt Low</td>
+        <td>Total</td>
+        <td>Average</td>
       </tr>
       <tr>
-        <td>{{ .BatteryInstantPower }}</td>
         <td>{{ printf "%.2f" .BatteryCharge}}%</td>
-        <td>{{ .BatteryChargeAsOf.Format "02 Jan 06 15:04:05 MST" }}</td>
-        <td>{{ .QueryTime}}</td>
+        <td>{{ printf "%.2f" .HiPct}} ({{ .HiDT}})</td>
+        <td>{{ printf "%.2f" .LowPct}} ({{ .LowDT}})</td>
+        <td>{{ printf "%.0f" .TotalSamples}}</td>
+        <td>{{ printf "%.2f" .AvgPct}}</td>
       </tr>
     </table>
   </body>

@@ -49,15 +49,15 @@
         <td>Total</td>
         <td>Average</td>
       </tr>
-      {{ range .DayBatteryHistory}}  
-        <tr>
-          <td>{{ .BatteryInstantPower }}</td>
-          <td>{{ printf "%.2f" .BatteryCharge}}%</td>
-          <td>{{ printf "%.2f" .HiPct}} ({{ .HiDT}})</td>
-          <td>{{ printf "%.2f" .LowPct}} ({{ .LowDT}})</td>
-          <td>{{ printf "%.0f" .TotalSamples}}</td>
-          <td>{{ printf "%.2f" .AvgPct}}</td>
-      </tr>
+      <tr>
+        <td>{{ .BatteryInstantPower }}</td>
+          {{ range .DayBatteryHistory}}  
+            <td>{{ printf "%.2f" .BatteryCharge}}%</td>
+            <td>{{ printf "%.2f" .HiPct}} ({{ .HiDT}})</td>
+            <td>{{ printf "%.2f" .LowPct}} ({{ .LowDT}})</td>
+            <td>{{ printf "%.0f" .TotalSamples}}</td>
+            <td>{{ printf "%.2f" .AvgPct}}</td>
+        </tr>
       {{end}}
     </table>
   </body>

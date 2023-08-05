@@ -240,7 +240,7 @@
   <tr>
     <td><b>Location</b></td>
     <td><b>As Of</b></td>
-    <td><b>Grid</b></td>
+    <td><b>{{ if .SiteInstantPower < 0 then 'Producing' else 'Consuming' }}</b></td>
     <td><b>Home</b></td>
     <td><b>Solar</b></td>
     <td><b>Battery</b></td>
@@ -251,7 +251,7 @@
   <tr>
     <td>{{ .Location}}</td>
     <td>{{ .AsOf.Format "02 Jan 06 15:04:05 MST" }}</td>
-    <td>{{ .SiteInstantPower}}</td>
+    <td>{{ .SiteInstantPower</td>
     <td>{{ .LoadInstantPower}}</td>
     <td>{{ .SolarInstantPower}}</td>
     <td>{{ .BatteryInstantPower}}</td>

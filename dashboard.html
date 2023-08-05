@@ -240,7 +240,12 @@
   <tr>
     <td><b>Location</b></td>
     <td><b>As Of</b></td>
-    <td><b>{{ if .SiteInstantPower < 0 then 'Producing' else 'Consuming' }}</b></td>
+    {{ if .SiteInstantPower < 0 }}
+    <td><b>Producing</b></td>
+    {{ end }}
+    {{ if .SiteInstantPower >= 0 }}
+    <td><b>Consuming</b></td>
+    {{ end }}
     <td><b>Home</b></td>
     <td><b>Solar</b></td>
     <td><b>Battery</b></td>

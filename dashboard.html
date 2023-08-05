@@ -240,8 +240,7 @@
   <tr>
     <td><b>Location</b></td>
     <td><b>As Of</b></td>
-    {{if (ge .Usage .Limit)}}
-    {{if (le .SiteInstantPower 0)}}
+    {{if (le .SiteInstantPower 0.0)}}
       <td><b>Producing</b></td>
     {{else}}
       <td><b>Consuming</b></td>

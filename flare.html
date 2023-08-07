@@ -30,32 +30,15 @@
       </tr>
     </table>
     <br>
-    <h3 style="color:white">Grid:</h3>
-    <table border="1">
-      <tr>
-        <td>Grid Hi</td>
-        <td>Grid Low</td>
-        <td>Grid Avg</td>
-      </tr>
-    </table>
-    <br>
     <h3 style="color:white">Battery:</h3>
     <table border="1">
       <tr>
         <td>Battery Power:</td>
         <td>Battery Charge:</td>
-        <td>Batt Hi</td>
-        <td>Batt Low</td>
-        <td>Total</td>
-        <td>Average</td>
       </tr>
       <tr>
         <td>{{ .BatteryInstantPower }}</td>  
         <td>{{ printf "%.2f" .BatteryCharge}}%</td>
-        <td>{{ printf "%.2f" .HiPct}} ({{ .HiDT}})</td>
-        <td>{{ printf "%.2f" .LowPct}} ({{ .LowDT}})</td>
-        <td>{{ printf "%.0f" .TotalSamples}}</td>
-        <td>{{ printf "%.2f" .AvgPct}}</td>
       </tr>
     </table>
   </body>

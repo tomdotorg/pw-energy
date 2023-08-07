@@ -35,10 +35,12 @@
       <tr>
         <td>Battery Power:</td>
         <td>Battery Charge:</td>
+        <td>Charge As Of</td>
       </tr>
       <tr>
         <td>{{ .BatteryInstantPower }}</td>  
         <td>{{ printf "%.2f" .BatteryCharge}}%</td>
+        <td>{{ .BatteryChargeAsOf.Format "02 Jan 06 15:04:05 MST" }}</td>
       </tr>
     </table>
   </body>

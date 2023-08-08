@@ -16,13 +16,13 @@
   </head>
   <body style="background-color:black;">
     <h2 style="color:white">The values at {{ .Location }} as of {{ .AsOf.Format "02 Jan 06 15:04:05 MST" }}:</h2>
-    <h3 style="color:white">Main:</h3>
     <br>
     {{if (ge .SolarInstantPower .LoadInstantPower)}}
       Producing
     {{else}}
       Consuming
     {{end}}
+    <h3 style="color:white">Main:</h3>
     <table border="1">
       <tr>
         <td>Site:</td>
@@ -36,36 +36,18 @@
       </tr>
     </table>
     <br>
-    <h3 style="color:white">Grid:</h3>
-    <table border="1">
-      <tr>
-        <td>Grid Hi</td>
-        <td>Grid Low</td>
-        <td>Grid Avg</td>
-      </tr>
-    </table>
-    <br>
     <h3 style="color:white">Battery:</h3>
     <table border="1">
       <tr>
         <td>Battery Power:</td>
-        <td>Day:</td>
         <td>Battery Charge:</td>
-        <td>Batt Hi</td>
-        <td>Batt Low</td>
-        <td>Total</td>
-        <td>Average</td>
+        <td>Charge As Of</td>
       </tr>
       <tr>
         <td>{{ .BatteryInstantPower }}</td>  
-        <td>{{ .DT }}</td>
         <td>{{ printf "%.2f" .BatteryCharge}}%</td>
-        <td>{{ printf "%.2f" .HiPct}} ({{ .HiDT}})</td>
-        <td>{{ printf "%.2f" .LowPct}} ({{ .LowDT}})</td>
-        <td>{{ printf "%.0f" .TotalSamples}}</td>
-        <td>{{ printf "%.2f" .AvgPct}}</td>
+        <td>{{ .BatteryChargeAsOf.Format "02 Jan 06 15:04:05 MST" }}</td>
       </tr>
     </table>
-    <span style="blue">Main</span>
   </body>
 </html>

@@ -14,7 +14,7 @@
       }
     </style>
   </head>
-  <body style="background-color:black;">
+  <body style="background-color:rgb(152, 147, 147);">
     <h2 style="color:white">The values at {{ .Location }} as of {{ .AsOf.Format "02 Jan 06 15:04:05 MST" }}:</h2>
     <br>
     {{if (ge .SolarInstantPower .LoadInstantPower)}}
@@ -22,7 +22,7 @@
     {{else}}
       Consuming
     {{end}}
-    <h3 style="color:white">Main:</h3>
+    <h3 style="color:rgb(49, 69, 244)">Main:</h3>
     <table border="1">
       <tr>
         <td>Site:</td>
@@ -36,7 +36,7 @@
       </tr>
     </table>
     <br>
-    <h3 style="color:white">Battery:</h3>
+    <h3 style="color:rgb(247, 17, 17)">Battery:</h3>
     <table border="1">
       <tr>
         <td>Battery Power:</td>

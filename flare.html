@@ -18,9 +18,9 @@
     <h2 style="color:rgb(37, 40, 233)">The values at {{ .Location }} as of {{ .AsOf.Format "02 Jan 06 15:04:05 MST" }}:</h2>
     <br>
     {{if (ge .SolarInstantPower .LoadInstantPower)}}
-      Producing
+      <p color="green">Producing</p>
     {{else}}
-      Consuming
+      <p color="red">Consuming</p>
     {{end}}
     <h3 style="color:rgb(49, 69, 244)">Main:</h3>
     <table border="1">

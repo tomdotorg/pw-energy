@@ -15,7 +15,7 @@
     </style>
   </head>
   <body style="background-color:rgb(152, 147, 147);">
-    <h2 style="color:rgb(37, 40, 233)">The values at {{ .Location }} as of {{ .AsOf.Format "02 Jan 06 15:04:05 MST" }}:</h2>
+    <h2 style="color:rgb(28, 237, 70)">The values at {{ .Location }} as of {{ .AsOf.Format "02 Jan 06 15:04:05 MST" }}:</h2>
     <br>
     {{if (ge .SolarInstantPower .LoadInstantPower)}}
       <p style="color:greenyellow">Producing</p>

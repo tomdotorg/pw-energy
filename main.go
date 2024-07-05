@@ -2,7 +2,9 @@ package main
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 	"strconv"
@@ -11,12 +13,10 @@ import (
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
-	"github.com/rs/zerolog/pkgerrors"
 )
 
 var db *sql.DB = nil
+var logger *slog.Logger
 
 // templateData provides template parameters.
 type templateData struct {
@@ -32,12 +32,12 @@ type templateData struct {
 	Location     string
 }
 
-type PctDisplayRecord struct {
-	location       string
-	topic          string
-	dt             time.Time
-	percentCharged float64
-}
+//type PctDisplayRecord struct {
+//	location       string
+//	topic          string
+//	dt             time.Time
+//	percentCharged float64
+//}
 
 type TopStats struct {
 	Location              string
@@ -140,37 +140,40 @@ type StatsDisplayRecord struct {
 
 // Variables used to generate the HTML page.
 var (
-	indexData     templateData
-	indexTmpl     *template.Template
+	//indexData     templateData
+	//indexTmpl     *template.Template
 	dashboardTmpl *template.Template
-	chartsTmpl    *template.Template
-	liveTmpl      *template.Template
-	liveData      templateData
+	//chartsTmpl    *template.Template
+	liveTmpl *template.Template
+	liveData templateData
+	//flareData templateData
+	flareTmpl *template.Template
+	indexData templateData
+	indexTmpl *template.Template
 )
 
-type ValueDisplayRecord struct {
-	DT    int64
-	Value float64
-}
+//type ValueDisplayRecord struct {
+//	DT    int64
+//	Value float64
+//}
 
 func initLogs() {
 	// initialize the logger
-	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
-	zerolog.SetGlobalLevel(zerolog.InfoLevel)
-
+	var options = &slog.HandlerOptions{Level: slog.LevelInfo}
 	if os.Getenv("CONSOLE") != "" {
-		log.Info().Msg("logging to console")
-		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+		logger = slog.New(slog.NewTextHandler(os.Stderr, options))
+		slog.Info("logging to console")
 	} else {
-		log.Output(os.Stdout)
+		logger = slog.New(slog.NewTextHandler(os.Stdout, options))
 	}
 
 	if os.Getenv("DEBUG") != "" {
-		zerolog.SetGlobalLevel(zerolog.TraceLevel)
-		log.Info().Msg("enabling Trace level logging")
+		options = &slog.HandlerOptions{Level: slog.LevelDebug}
+		logger.Info("enabling Trace level logging")
 	} else {
-		log.Info().Msg("enabling Info level logging")
+		logger.Info("enabling Info level logging")
 	}
+	slog.SetDefault(logger)
 }
 
 func dbConnect() {
@@ -179,7 +182,6 @@ func dbConnect() {
 	passwd := os.Getenv("DB_PASS")
 	instanceConnectionName := os.Getenv("INSTANCE_CONNECTION_NAME")
 	socketDir, socketIsSet := os.LookupEnv("DB_SOCKET_DIR")
-	// log.Debug("env", "DB_NAME", dbName).Msg("")
 	if !socketIsSet {
 		socketDir = "/cloudsql"
 	}
@@ -188,35 +190,35 @@ func dbConnect() {
 		user, passwd, socketDir, instanceConnectionName, dbName)
 	debugURI := fmt.Sprintf("%s:%s@unix(%s/%s)/%s?parseTime=true",
 		user, "<password>", socketDir, instanceConnectionName, dbName)
-	log.Trace().Msgf("connecting to: [%s]", debugURI)
+	logger.Debug("connecting to: [%s]", debugURI)
 	// dbPool is the pool of database connections.
 	var err error
 	const retries = 5
 	if db != nil {
 		pingErr := db.Ping()
 		if pingErr == nil {
-			log.Print("Already connected.")
+			logger.Info("Already connected.")
 			return
 		}
 	}
 	for i := 0; i < retries; i++ {
 		db, err = sql.Open("mysql", dbURI)
 		if err != nil {
-			log.Fatal().Err(err).Msg("sql.Open()")
+			logger.Error("sql.Open(): %v", err)
 		}
 		pingErr := db.Ping()
 		if pingErr != nil {
-			log.Error().Err(pingErr).Stack().Msgf("pinging db - try #%d", i)
+			logger.Error("pinging db - try #%d", i)
 		} else {
-			log.Info().Msg("Connected!")
+			logger.Info("Connected!")
 			return
 		}
 	}
-	log.Fatal().Err(err).Msgf("Could not connect to database: %s", err)
+	logger.Error("Could not connect to database: %s", err)
 }
 
 func statsChartData(in []StatsDisplayRecord) (production string, consumption string, grid string, battery string) {
-	log.Debug().Msg("statsChartData()")
+	logger.Debug("statsChartData()")
 	var prod, cons, site, batt strings.Builder
 
 	prod.WriteString("[")
@@ -237,7 +239,7 @@ func statsChartData(in []StatsDisplayRecord) (production string, consumption str
 	site.WriteString("]")
 	batt.WriteString("]")
 
-	log.Debug().Msgf("statsChartData() done: %d rows processed", n)
+	logger.Debug("statsChartData() done: %d rows processed", n)
 	return prod.String(), cons.String(), site.String(), batt.String()
 }
 
@@ -251,6 +253,7 @@ func liveChartData(in []EnergyDisplayRecord) (p string, c string, s string, b st
 
 	n := 0
 	for _, v := range in {
+		n++
 		dt := v.AsOf.Local().Unix() * 1000
 		cons.WriteString(fmt.Sprintf("[%d,%f],", dt, v.Load))
 		site.WriteString(fmt.Sprintf("[%d,%f],", dt, v.Site))
@@ -263,7 +266,7 @@ func liveChartData(in []EnergyDisplayRecord) (p string, c string, s string, b st
 	site.WriteString("]")
 	batt.WriteString("]")
 
-	log.Debug().Msgf("liveChartData() done: %d rows processed", n)
+	logger.Debug("liveChartData() done: %d rows processed", n)
 	return prod.String(), cons.String(), site.String(), batt.String()
 }
 
@@ -280,27 +283,27 @@ func batteryChartData(in []BatteryPctDisplayRecord) (p string) {
 
 // statsByLocation queries for the summary information for a site.
 func statsByLocation(location string, limit int) (TopStats, error) {
-	log.Debug().Msgf("statsByLocation(%s, %d)", location, limit)
+	logger.Debug("statsByLocation(%s, %d)", location, limit)
 	dbConnect()
 	start := time.Now()
 	var stats TopStats
 	row := db.QueryRow("SELECT dt asof, payload->>'$.load.instant_power' ld, payload->>'$.battery.instant_power' battery, payload->>'$.site.instant_power' site, payload->>'$.solar.instant_power' solar FROM energy where location = ? order by asOf desc limit 1;", location)
 	var load, battery, site, solar float64
 	if err := row.Scan(&stats.AsOf, &load, &battery, &site, &solar); err != nil {
-		if err == sql.ErrNoRows {
-			log.Error().Err(err).Msg("No rows returned")
+		if errors.Is(err, sql.ErrNoRows) {
+			logger.Error("No rows returned")
 			return stats, err
 		}
-		log.Error().Err(err).Msg("No rows returned")
+		logger.Error("No rows returned")
 		return stats, err
 	}
 	row = db.QueryRow("SELECT dt asof, percent_charged FROM battery where location = ? order by asOf desc limit 1;", location)
 	if err := row.Scan(&stats.BatteryChargeAsOf, &stats.BatteryCharge); err != nil {
-		if err == sql.ErrNoRows {
-			log.Error().Err(err).Msg("no battery charge data")
+		if errors.Is(err, sql.ErrNoRows) {
+			logger.Error("no battery charge data")
 			return stats, err
 		}
-		log.Error().Err(err).Msg("no battery charge data")
+		logger.Error("no battery charge data")
 		return stats, err
 	}
 
@@ -316,14 +319,14 @@ func statsByLocation(location string, limit int) (TopStats, error) {
 	// Battery percent history
 	battHistory, err := getDayBatteryPct(location, limit)
 	if err != nil {
-		log.Error().Err(err).Msg("getDayBatteryPct()")
+		logger.Error("getDayBatteryPct()")
 	}
 	stats.DayBatteryHistory = battHistory
 
 	// Stats history
 	statsHistory, err := getDayStats(location, limit)
 	if err != nil {
-		log.Error().Err(err).Msg("getDayBatteryPct()")
+		logger.Error("getDayBatteryPct()")
 	}
 	stats.StatsHistory = statsHistory
 
@@ -333,24 +336,24 @@ func statsByLocation(location string, limit int) (TopStats, error) {
 
 // currentEnergyByLocation returns the limit most current records
 func currentEnergyByLocation(location string, limit int) ([]EnergyDisplayRecord, error) {
-	log.Debug().Msgf("currentEnergyByLocation(%s, %d)", location, limit)
+	logger.Debug("currentEnergyByLocation(%s, %d)", location, limit)
 	dbConnect()
 	var energy EnergyDisplayRecord
 	var energyList = make([]EnergyDisplayRecord, 0)
 	row, err := db.Query("select * from (SELECT id, dt asof, load_instant_power ld, battery_instant_power battery, site_instant_power site, solar_instant_power solar FROM energy where location = ? order by asOf desc limit ?) t1 order by t1.id;", location, limit)
 	if err != nil {
-		log.Error().Err(err).Msg("currentEnergyByLocation()")
+		logger.Error("currentEnergyByLocation()")
 		return energyList, err
 	}
 	for row.Next() {
 		var id int
 		err := row.Scan(&id, &energy.AsOf, &energy.Load, &energy.Battery, &energy.Site, &energy.Solar)
 		if err != nil {
-			if err == sql.ErrNoRows {
-				log.Error().Err(err).Msg("No rows returned")
+			if errors.Is(err, sql.ErrNoRows) {
+				logger.Error("No rows returned")
 				return energyList, err
 			}
-			log.Error().Err(err).Msg("No rows returned")
+			logger.Error("No rows returned")
 			return energyList, err
 		}
 		energy.Location = location
@@ -363,10 +366,25 @@ func currentEnergyByLocation(location string, limit int) ([]EnergyDisplayRecord,
 
 func main() {
 	initLogs()
-	log.Debug().Msg("about to call dbConnect()")
+	slog.Info("Starting up")
+	logger.Debug("about to call dbConnect()")
 	dbConnect()
-	log.Debug().Msg("done calling dbConnect()")
+	logger.Debug("done calling dbConnect()")
 
+	/* flare students work */
+
+	flareTmpl = template.Must(template.ParseFiles("flare.html"))
+	//flareData = templateData{
+	//	Service:  "flare service",
+	//	Revision: "0.1",
+	//}
+	http.HandleFunc("/flare", flareHandler)
+
+	indexTmpl = template.Must(template.ParseFiles("index.html"))
+	indexData = templateData{
+		Service:  "index service",
+		Revision: "0.1",
+	}
 	http.HandleFunc("/", indexHandler)
 
 	// Prepare template for execution.
@@ -376,6 +394,7 @@ func main() {
 		Revision: "0.1",
 	}
 	http.HandleFunc("/live", liveHandler)
+
 	dashboardTmpl = template.Must(template.ParseFiles("dashboard.html"))
 
 	http.HandleFunc("/energy", energyHandler)
@@ -389,10 +408,17 @@ func main() {
 		port = "8080"
 	}
 
-	log.Info().Msgf("Listening on port %s", port)
+	logger.Info("Listening on port %s", port)
 	err := http.ListenAndServe(":"+port, nil)
 	if err != nil {
-		log.Fatal().Err(err).Msg("http.ListenAndServe()")
+		logger.Error("http.ListenAndServe()")
+	}
+}
+
+func indexHandler(writer http.ResponseWriter, _ *http.Request) {
+	if err := indexTmpl.Execute(writer, indexData); err != nil {
+		msg := http.StatusText(http.StatusInternalServerError)
+		logger.Error(msg)
 	}
 }
 
@@ -405,11 +431,11 @@ func energyHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		location = strings.ToUpper(keys[0])
 	}
-	log.Debug().Msgf(`location: %s`, location)
+	logger.Debug(`location: %s`, location)
 
 	defaultLimit, err := strconv.Atoi(os.Getenv("DEFAULT_LIMIT"))
 	if err != nil {
-		log.Error().Err(err).Msg("DEFAULT_LIMIT failed strconv.Atoi()")
+		logger.Error("DEFAULT_LIMIT failed strconv.Atoi()")
 		defaultLimit = 7
 	}
 	var limit int
@@ -420,7 +446,7 @@ func energyHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		l, err := strconv.Atoi(limits[0])
 		if err != nil {
-			log.Warn().Msgf("limit [%s] not an integer - using %d", keys[0], defaultLimit)
+			logger.Warn("limit [%s] not an integer - using %d", keys[0], defaultLimit)
 			limit = defaultLimit
 		} else {
 			limit = l
@@ -438,72 +464,93 @@ func energyHandler(w http.ResponseWriter, r *http.Request) {
 	endDate := time.Now().Local().Unix()
 	fiveMinStatRecs, err := getFiveMinStats(location, beginDate, endDate)
 	if err != nil {
-		log.Error().Err(err).Msg("getFiveMinStats()")
+		logger.Error("getFiveMinStats()")
 	}
 	stats.EnergyHistory = fiveMinStatRecs
 	stats.ProducedGraphData, stats.ConsumedGraphData, stats.SiteGraphData, stats.BatteryGraphData = statsChartData(fiveMinStatRecs)
 
 	fiveMinBatteryRecs, err := getFiveMinBattery(location, beginDate, endDate)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("getFiveMinBattery()")
+		logger.Error("getFiveMinBattery()")
 	}
 	stats.FiveMinBatteryHistory = fiveMinBatteryRecs
 	stats.BatteryPctGraphData = batteryChartData(fiveMinBatteryRecs)
 
 	if err := dashboardTmpl.Execute(w, stats); err != nil {
 		msg := http.StatusText(http.StatusInternalServerError)
-		log.Error().Err(err).Msg(msg)
+		logger.Error(msg)
 	}
-}
-
-// indexHandler responds by redirecting to Google search.
-func indexHandler(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, "https://www.google.com", 301)
 }
 
 func liveHandler(w http.ResponseWriter, r *http.Request) {
-	var location string
-	keys, ok := r.URL.Query()["location"]
-	if !ok || len(keys) != 1 {
-		log.Debug().Msgf(`no location specified in location url parameter. using VT`)
-		location = "VT"
-	} else {
-		location = strings.ToUpper(keys[0])
+	location, ok := getLocation(r)
+	if !ok {
+		s := fmt.Sprintf("%+v", "no location specified")
+		http.Error(w, s, http.StatusInternalServerError)
 	}
-	log.Debug().Msgf(`location: %s`, location)
 
 	limit, ok := r.URL.Query()["limit"]
 	if !ok || len(limit) != 1 {
-		log.Debug().Msgf(`no limit specified in limit url parameter. using 2000`)
+		logger.Debug(`no limit specified in limit url parameter. using 2000`)
 		liveData.LiveLimit = 2000
 	} else {
 		var err error
 		if liveData.LiveLimit, err = strconv.Atoi(limit[0]); err != nil {
 			liveData.LiveLimit = 2000
-			log.Warn().Msgf("limit [%s] not an integer - using %d", limit[0], liveData.LiveLimit)
+			logger.Warn("limit [%s] not an integer - using %d", limit[0], liveData.LiveLimit)
 		}
 	}
-	log.Debug().Msgf(`LiveLimit: %d`, liveData.LiveLimit)
+	logger.Debug(`LiveLimit: %d`, liveData.LiveLimit)
 
 	recs, err := currentEnergyByLocation(location, liveData.LiveLimit)
 	if err != nil {
 		s := fmt.Sprintf("%+v", err)
 		http.Error(w, s, http.StatusInternalServerError)
 	}
-	log.Debug().Msgf("live recs: %+v", len(recs))
+	logger.Debug("live recs: %+v", len(recs))
 	liveData.MQTTSubTopic = "energy/" + strings.ToLower(location) + "/energy" // works with wildcard # and + topics dynamically now
-	log.Debug().Msgf(`liveData.MQTTSubTopic: %s`, liveData.MQTTSubTopic)
+	logger.Debug(`liveData.MQTTSubTopic: %s`, liveData.MQTTSubTopic)
 
 	liveData.Location = location
 	liveData.SolarData, liveData.LoadData, liveData.SiteData, liveData.BatteryData = liveChartData(recs)
 	if err := liveTmpl.Execute(w, liveData); err != nil {
 		msg := http.StatusText(http.StatusInternalServerError)
-		log.Error().Err(err).Stack().Msg(msg)
+		logger.Error(msg)
+	}
+}
+
+func getLocation(r *http.Request) (string, bool) {
+	var location string
+	keys, ok := r.URL.Query()["location"]
+	if !ok || len(keys) != 1 {
+		logger.Debug(`no location specified in location url parameter. using VT`)
+		location = "VT"
+	} else {
+		location = strings.ToUpper(keys[0])
+	}
+	logger.Debug(`location: %s`, location)
+	return location, ok
+}
+
+func flareHandler(w http.ResponseWriter, r *http.Request) {
+	logger.Info("flareHandler(): %s", r.URL.Path)
+	location, ok := getLocation(r)
+	if !ok {
+		logger.Debug("no location specified")
+	}
+
+	stats, err := statsByLocation(location, 200)
+	if err != nil {
+		s := fmt.Sprintf("%+v", err)
+		http.Error(w, s, http.StatusInternalServerError)
+	}
+	if err := flareTmpl.Execute(w, stats); err != nil {
+		http.Error(w, "error rendering flare.html", http.StatusInternalServerError)
 	}
 }
 
 func getDayStats(location string, limit int) ([]StatsDisplayRecord, error) {
-	log.Debug().Msgf("getDayStats(%s, %d)", location, limit)
+	logger.Debug("getDayStats(%s, %d)", location, limit)
 	rows, err := db.Query(`select location, datetime,
        hi_site, hi_site_dt, low_site, low_site_dt, site_energy_imported, site_energy_exported, num_site_samples, total_site_samples,
 		   hi_load, hi_load_dt, low_load, low_load_dt, load_energy_imported, load_energy_exported, num_load_samples, total_load_samples,
@@ -511,13 +558,13 @@ func getDayStats(location string, limit int) ([]StatsDisplayRecord, error) {
 		   hi_solar, hi_solar_dt, low_solar, low_solar_dt, solar_energy_imported, solar_energy_exported, num_solar_samples, total_solar_samples
 			from day_top_stats where location = ? order by datetime desc limit ?`, location, limit)
 	if err != nil {
-		log.Error().Err(err).Msgf("getDayStats(): %+v", err)
+		logger.Error("getDayStats(): %+v", err)
 		return nil, err
 	}
 	defer func(rows *sql.Rows) {
 		err := rows.Close()
 		if err != nil {
-			log.Fatal().Err(err).Stack().Msg("error closing rows")
+			logger.Error("error closing rows")
 		}
 	}(rows)
 	recs := make([]StatsDisplayRecord, 0)
@@ -530,7 +577,7 @@ func getDayStats(location string, limit int) ([]StatsDisplayRecord, error) {
 			&dbStats.HiBattery, &dbStats.HiBatteryTime, &dbStats.LowBattery, &dbStats.LowBatteryTime, &dbStats.BatteryImported, &dbStats.BatteryExported, &dbStats.NumBatterySamples, &dbStats.TotalBatterySamples,
 			&dbStats.HiSolar, &dbStats.HiSolarTime, &dbStats.LowSolar, &dbStats.LowSolarTime, &dbStats.SolarImported, &dbStats.SolarExported, &dbStats.NumSolarSamples, &dbStats.TotalSolarSamples)
 		if err != nil {
-			log.Error().Err(err).Msgf("getDayStats(): %+v", err)
+			logger.Error("getDayStats(): %+v", err)
 			return nil, err
 		}
 		dbStats.DT = time.Unix(dbStats.DateTime, 0).Format("2006-01-02")
@@ -548,12 +595,12 @@ func getDayStats(location string, limit int) ([]StatsDisplayRecord, error) {
 		dbStats.SolarAvg = dbStats.TotalSolarSamples / float64(dbStats.NumSolarSamples)
 		recs = append(recs, dbStats)
 	}
-	log.Debug().Msgf("end getDayStats()")
+	logger.Debug("end getDayStats()")
 	return recs, nil
 }
 
 func getFiveMinStats(location string, beginDate int64, endDate int64) ([]StatsDisplayRecord, error) {
-	log.Debug().Msgf("getFiveMinStats(%s, %d  %d)", location, beginDate, endDate)
+	logger.Debug("getFiveMinStats(%s, %d  %d)", location, beginDate, endDate)
 	rows, err := db.Query(`select location, datetime,
        hi_site, hi_site_dt, low_site, low_site_dt, site_energy_imported, site_energy_exported, num_site_samples, total_site_samples,
 		   hi_load, hi_load_dt, low_load, low_load_dt, load_energy_imported, load_energy_exported, num_load_samples, total_load_samples,
@@ -561,13 +608,13 @@ func getFiveMinStats(location string, beginDate int64, endDate int64) ([]StatsDi
 		   hi_solar, hi_solar_dt, low_solar, low_solar_dt, solar_energy_imported, solar_energy_exported, num_solar_samples, total_solar_samples
 			from five_min_top_stats where location = ? and datetime >= ? and datetime <= ? order by datetime`, location, beginDate, endDate)
 	if err != nil {
-		log.Error().Err(err).Msgf("getFiveMinStats(): %+v", err)
+		logger.Error("getFiveMinStats(): %+v", err)
 		return nil, err
 	}
 	defer func(rows *sql.Rows) {
 		err := rows.Close()
 		if err != nil {
-			log.Fatal().Err(err).Stack().Msg("error closing rows")
+			logger.Error("error closing rows")
 		}
 	}(rows)
 	recs := make([]StatsDisplayRecord, 0)
@@ -580,7 +627,7 @@ func getFiveMinStats(location string, beginDate int64, endDate int64) ([]StatsDi
 			&dbStats.HiBattery, &dbStats.HiBatteryTime, &dbStats.LowBattery, &dbStats.LowBatteryTime, &dbStats.BatteryImported, &dbStats.BatteryExported, &dbStats.NumBatterySamples, &dbStats.TotalBatterySamples,
 			&dbStats.HiSolar, &dbStats.HiSolarTime, &dbStats.LowSolar, &dbStats.LowSolarTime, &dbStats.SolarImported, &dbStats.SolarExported, &dbStats.NumSolarSamples, &dbStats.TotalSolarSamples)
 		if err != nil {
-			log.Error().Err(err).Msgf("getFiveMinStats(): %+v", err)
+			logger.Error("getFiveMinStats(): %+v", err)
 			return nil, err
 		}
 		dbStats.DT = time.Unix(dbStats.DateTime, 0).Format("2006-01-02")
@@ -598,23 +645,23 @@ func getFiveMinStats(location string, beginDate int64, endDate int64) ([]StatsDi
 		dbStats.SolarAvg = dbStats.TotalSolarSamples / float64(dbStats.NumSolarSamples)
 		recs = append(recs, dbStats)
 	}
-	log.Debug().Msgf("end getFiveMinStats()")
+	logger.Debug("end getFiveMinStats()")
 	return recs, nil
 }
 
 func getFiveMinBattery(location string, beginDate int64, endDate int64) ([]BatteryPctDisplayRecord, error) {
-	log.Debug().Msgf("getFiveMinBattery(%s, %+v, %+v)", location, time.Unix(beginDate, 0).String(), time.Unix(endDate, 0).String())
+	logger.Debug("getFiveMinBattery(%s, %+v, %+v)", location, time.Unix(beginDate, 0).String(), time.Unix(endDate, 0).String())
 	rows, err := db.Query("select location, datetime, hi_pct, hi_pct_dt, low_pct, low_pct_dt, "+
 		"num_samples, total_samples from five_min_battery_pct where location = ? "+
 		"and datetime >= ? and datetime <= ? order by datetime", location, beginDate, endDate)
 	if err != nil {
-		log.Error().Err(err).Stack().Msg("error querying db")
+		logger.Error("error querying db")
 		return nil, err
 	}
 	defer func(rows *sql.Rows) {
 		err := rows.Close()
 		if err != nil {
-			log.Error().Err(err).Stack().Msg("error closing rows")
+			logger.Error("error closing rows")
 		}
 	}(rows)
 	recs := make([]BatteryPctDisplayRecord, 0)
@@ -622,34 +669,33 @@ func getFiveMinBattery(location string, beginDate int64, endDate int64) ([]Batte
 		var pctRecord BatteryPctDisplayRecord
 		err = rows.Scan(&pctRecord.Location, &pctRecord.DateTime, &pctRecord.HiPct, &pctRecord.HiPctTime, &pctRecord.LowPct, &pctRecord.LowPctTime, &pctRecord.NumSamples, &pctRecord.TotalSamples)
 		if err != nil {
-			log.Error().Err(err).Stack().Msg("error getting day pct summaries")
+			logger.Error("error getting day pct summaries")
 			return recs, err
 		}
 		pctRecord.DT = time.Unix(pctRecord.DateTime, 0).Format("2006-01-02")
 		pctRecord.LowDT = time.Unix(pctRecord.LowPctTime, 0).Format("15:04")
 		pctRecord.HiDT = time.Unix(pctRecord.HiPctTime, 0).Format("15:04")
 		pctRecord.AvgPct = pctRecord.TotalSamples / float64(pctRecord.NumSamples)
-		//		log.Debug().Msgf("pctRecord: %+v", pctRecord)
 		recs = append(recs, pctRecord)
 	}
-	log.Debug().Msgf("end getFiveMinBattery() returning %d records", len(recs))
+	logger.Debug("end getFiveMinBattery() returning %d records", len(recs))
 	return recs, nil
 }
 
 func getDayBatteryPct(location string, limit int) ([]BatteryPctDisplayRecord, error) {
-	log.Debug().Msgf("getDayBatteryPct(%s, %d)", location, limit)
+	logger.Debug("getDayBatteryPct(%s, %d)", location, limit)
 	rows, err := db.Query(
 		"select location, datetime, hi_pct, hi_pct_dt, low_pct, low_pct_dt, "+
 			"num_samples, total_samples from day_battery_pct where location = ? order by datetime desc limit ?",
 		location, limit)
 	if err != nil {
-		log.Error().Err(err).Stack().Msg("error querying db")
+		logger.Error("error querying db")
 		return nil, err
 	}
 	defer func(rows *sql.Rows) {
 		err := rows.Close()
 		if err != nil {
-			log.Error().Err(err).Stack().Msg("error closing rows")
+			logger.Error("error closing rows")
 		}
 	}(rows)
 	recs := make([]BatteryPctDisplayRecord, 0)
@@ -657,7 +703,7 @@ func getDayBatteryPct(location string, limit int) ([]BatteryPctDisplayRecord, er
 		var pctRecord BatteryPctDisplayRecord
 		err = rows.Scan(&pctRecord.Location, &pctRecord.DateTime, &pctRecord.HiPct, &pctRecord.HiPctTime, &pctRecord.LowPct, &pctRecord.LowPctTime, &pctRecord.NumSamples, &pctRecord.TotalSamples)
 		if err != nil {
-			log.Error().Err(err).Stack().Msg("error getting day pct summaries")
+			logger.Error("error getting day pct summaries")
 			return recs, err
 		}
 		pctRecord.DT = time.Unix(pctRecord.DateTime, 0).Format("2006-01-02")
@@ -666,6 +712,6 @@ func getDayBatteryPct(location string, limit int) ([]BatteryPctDisplayRecord, er
 		pctRecord.AvgPct = pctRecord.TotalSamples / float64(pctRecord.NumSamples)
 		recs = append(recs, pctRecord)
 	}
-	log.Debug().Msgf("end getDayBatteryPct(%s, %d)", location, limit)
+	logger.Debug("end getDayBatteryPct(%s, %d)", location, limit)
 	return recs, nil
 }

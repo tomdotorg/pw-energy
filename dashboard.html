@@ -240,7 +240,13 @@
   <tr>
     <td><b>Location</b></td>
     <td><b>As Of</b></td>
-    <td><b>Grid</b></td>
+    <td><b>
+    {{if (ge .SolarInstantPower .LoadInstantPower)}}
+      Producing
+    {{else}}
+      Consuming
+    {{end}}
+    </b></td>
     <td><b>Home</b></td>
     <td><b>Solar</b></td>
     <td><b>Battery</b></td>
